@@ -1,0 +1,30 @@
+plugins {
+    id 'groovy'
+    id 'java'
+}
+
+group = 'com.example'
+version = '1.0.0'
+sourceCompatibility = '11'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation 'org.codehaus.groovy:groovy-all:3.0.9'
+    testImplementation 'org.spockframework:spock-core:2.3-groovy-3.0'
+    testImplementation 'org.junit.jupiter:junit-jupiter-engine:5.9.2'
+}
+
+test {
+    useJUnitPlatform()
+    testLogging {
+        events "passed", "skipped", "failed"
+        exceptionFormat "full"
+    }
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+}

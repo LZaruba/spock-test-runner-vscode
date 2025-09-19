@@ -1,0 +1,97 @@
+{
+  "name": "spock-test-runner-vscode",
+  "displayName": "Spock Test Runner",
+  "description": "Test runner for Spock Groovy tests in Java projects with VS Code Test API integration",
+  "version": "0.0.1",
+  "copyright": "Copyright 2025 Lukas Zaruba",
+  "publisher": "LZaruba",
+  "author": "Lukas Zaruba",
+  "icon": "images/icon.png",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/LZaruba/spock-test-runner-vscode"
+  },
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Testing",
+    "Debuggers"
+  ],
+  "keywords": [
+    "spock",
+    "groovy",
+    "testing",
+    "java",
+    "gradle",
+    "maven"
+  ],
+  "main": "./out/extension.js",
+  "activationEvents": [
+    "onLanguage:groovy",
+    "workspaceContains:**/*.groovy"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "command": "spock-test-runner-vscode.runTest",
+        "title": "Run Spock Test"
+      },
+      {
+        "command": "spock-test-runner-vscode.runSpecificTest",
+        "title": "Run This Test"
+      },
+      {
+        "command": "spock-test-runner-vscode.debugSpecificTest",
+        "title": "Debug This Test"
+      }
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "when": "resourceLangId == groovy",
+          "command": "spock-test-runner-vscode.runTest",
+          "group": "navigation"
+        }
+      ],
+      "testing/item/context": [
+        {
+          "command": "spock-test-runner-vscode.runSpecificTest",
+          "when": "testId == spock-test-runner-vscode",
+          "group": "inline"
+        }
+      ]
+    },
+    "languages": [
+      {
+        "id": "groovy",
+        "aliases": ["Groovy", "groovy"],
+        "extensions": [".groovy", ".gvy", ".gy", ".gsh"],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "files.associations": {
+      "*.groovy": "groovy",
+      "*.gvy": "groovy",
+      "*.gy": "groovy",
+      "*.gsh": "groovy"
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src --ext ts",
+    "test": "node ./out/test/runTest.js"
+  },
+  "devDependencies": {
+    "@types/mocha": "^10.0.10",
+    "@types/node": "^18.x",
+    "@types/vscode": "^1.85.0",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "eslint": "^8.0.0",
+    "typescript": "^5.3.3"
+  }
+}
