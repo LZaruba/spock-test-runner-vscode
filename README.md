@@ -2,6 +2,7 @@
 
 A VS Code extension that provides comprehensive test support for the Spock testing framework in Java projects. This extension integrates with VS Code's Test API to provide seamless test discovery, execution, and debugging capabilities for Spock tests.
 
+**Version**: 0.0.2  
 **Author**: Lukas Zaruba
 
 > **Inspiration**: This extension was inspired by [Daniel Micah's spock-test-runner](https://github.com/donnffd/spock-test-runner) but focuses exclusively on VS Code's Test API integration rather than CodeLens functionality.
@@ -11,7 +12,7 @@ A VS Code extension that provides comprehensive test support for the Spock testi
 - **Test Discovery**: Automatically discovers Spock test classes and methods in your workspace
 - **Test Execution**: Run individual tests, test classes, or all tests through VS Code's Test Explorer
 - **Debug Support**: Debug Spock tests with full breakpoint support and variable inspection
-- **Build Tool Support**: Works with both Gradle and Maven projects
+- **Build Tool Support**: Works with Gradle projects
 - **Real-time Updates**: Automatically updates test tree when files change
 - **Error Reporting**: Detailed error messages with file locations for failed tests
 - **Output Streaming**: Real-time test output in VS Code's Test Results panel
@@ -20,12 +21,12 @@ A VS Code extension that provides comprehensive test support for the Spock testi
 
 - VS Code 1.85.0 or higher
 - Java 11 or higher
-- Gradle or Maven build tool
+- Gradle build tool
 - Spock framework in your project
 
 ## Installation
 
-### From VS Code Marketplace (Coming Soon)
+### From VS Code Marketplace
 1. Open VS Code
 2. Go to Extensions view (Ctrl+Shift+X)
 3. Search for "spock-test-runner-vscode"
@@ -127,7 +128,7 @@ To test the extension:
 
 ### Tests Not Discovered
 - Ensure your test classes extend `Specification`
-- Check that your build tool (Gradle/Maven) is properly configured
+- Check that your Gradle build tool is properly configured
 - Verify that Spock dependencies are included in your project
 - Check the Output panel for "Spock Test Runner" logs
 
@@ -182,4 +183,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 - [Spock Framework](https://spockframework.org/) - The testing framework this extension supports
 - [VS Code Test API](https://code.visualstudio.com/api/extension-guides/testing) - The testing API this extension uses
-- [Gradle](https://gradle.org/) and [Maven](https://maven.apache.org/) - Build tools supported by this extension
+- [Gradle](https://gradle.org/) - Build tool supported by this extension

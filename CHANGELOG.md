@@ -8,7 +8,7 @@ All notable changes to the "spock-test-runner-vscode" extension will be document
 
 ### Changed
 - **Refactored codebase** for better maintainability and separation of concerns
-- **Forces test execution** to always run even if code is up-to-date using Gradle init scripts and Maven clean test
+- **Forces test execution** to always run even if code is up-to-date using Gradle init scripts
 - **Improved logging** with proper service-level responsibility separation
 - **Enhanced architecture** with dedicated services for build tools, test discovery, execution, and debugging
 
@@ -18,7 +18,7 @@ All notable changes to the "spock-test-runner-vscode" extension will be document
 - **DebugService**: Streamlined debug session management
 - **TestDiscoveryService**: Dedicated test parsing and discovery
 - **Gradle Integration**: Uses init script (`force-tests.init.gradle`) to force test execution
-- **Maven Integration**: Uses `clean test` to ensure fresh test execution
+- **Simplified Architecture**: Removed untested Maven support, focusing on Gradle-only implementation
 
 ### Fixed
 - **Test Execution**: Tests now run every time, not just when Gradle thinks they're needed

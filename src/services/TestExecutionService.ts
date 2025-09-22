@@ -1,8 +1,7 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
-import * as fs from 'fs';
 import { spawn } from 'child_process';
-import { TestExecutionOptions, TestResult, BuildTool } from '../types';
+import { TestExecutionOptions, TestResult } from '../types';
 import { BuildToolService } from './BuildToolService';
 import { DebugService } from './DebugService';
 
@@ -22,30 +21,9 @@ export class TestExecutionService {
       
       const escapedTestName = `${options.className}.${options.testName}`;
       
-      // Determine debug port based on build tool
-      let debugPort = 0;
-      if (options.debug) {
-        if (options.buildTool === 'gradle') {
-          // Gradle always uses port 5005 for --debug-jvm
-          debugPort = 5005;
-          this.logger.appendLine(`TestExecutionService: Using Gradle default debug port ${debugPort} for ${options.className}.${options.testName}`);
-        } else {
-          // Maven needs a custom available port
-          try {
-            debugPort = await this.generateAvailableDebugPort();
-            this.logger.appendLine(`TestExecutionService: Using custom debug port ${debugPort} for Maven ${options.className}.${options.testName}`);
-          } catch (error) {
-            this.logger.appendLine(`TestExecutionService: Failed to find available debug port: ${error}`);
-            options.debug = false;
-          }
-        }
-      }
-      
       const commandArgs = BuildToolService.buildCommandArgs(
-        options.buildTool, 
         escapedTestName, 
         options.debug, 
-        debugPort,
         options.workspacePath,
         this.logger
       );
@@ -57,7 +35,7 @@ export class TestExecutionService {
             workspacePath: options.workspacePath,
             className: options.className,
             testName: options.testName,
-            debugPort: debugPort
+            debugPort: 5005
           }).catch(error => {
             this.logger.appendLine(`TestExecutionService: Failed to start debug session: ${error}`);
           });
@@ -171,47 +149,6 @@ export class TestExecutionService {
     });
   }
 
-  private async generateAvailableDebugPort(): Promise<number> {
-    const maxAttempts = 10;
-    
-    for (let attempt = 0; attempt < maxAttempts; attempt++) {
-      const port = Math.floor(Math.random() * (65535 - 5000 + 1)) + 5000;
-      const isAvailable = await this.isPortAvailable(port);
-      if (isAvailable) {
-        this.logger.appendLine(`TestExecutionService: Found available debug port: ${port}`);
-        return port;
-      }
-    }
-    
-    // Fallback: try sequential ports
-    for (let port = 5000; port <= 65535; port++) {
-      const isAvailable = await this.isPortAvailable(port);
-      if (isAvailable) {
-        this.logger.appendLine(`TestExecutionService: Found available debug port (sequential): ${port}`);
-        return port;
-      }
-    }
-    
-    throw new Error('No available debug ports found');
-  }
-
-  private async isPortAvailable(port: number): Promise<boolean> {
-    return new Promise((resolve) => {
-      const net = require('net');
-      const server = net.createServer();
-      
-      server.listen(port, () => {
-        server.once('close', () => {
-          resolve(true);
-        });
-        server.close();
-      });
-      
-      server.on('error', () => {
-        resolve(false);
-      });
-    });
-  }
 
   private parseTestError(output: string): { error: string; location?: vscode.Location } | undefined {
     const lines = output.split('\n');

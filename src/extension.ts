@@ -30,12 +30,12 @@ export function activate(context: vscode.ExtensionContext) {
       const testClassName = extractTestName(filePath);
 
       if (!workspaceFolder || !buildTool || !testClassName) {
-        vscode.window.showErrorMessage('Invalid setup: Check workspace, build tool, or file name.');
+        vscode.window.showErrorMessage('Invalid setup: Check workspace, Gradle build tool, or file name.');
         logger.appendLine(`[ERROR] ${filePath}: Invalid setup - Workspace: ${!!workspaceFolder}, Build Tool: ${buildTool}, Class: ${testClassName}`);
         return;
       }
 
-      await runSpockTest(testClassName, null, workspaceFolder.uri.fsPath, buildTool, testExecutionService, logger, false);
+      await runSpockTest(testClassName, null, workspaceFolder.uri.fsPath, logger, false);
     })
   );
 
@@ -43,7 +43,7 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.commands.registerCommand('spock-test-runner-vscode.runSpecificTest', async (testClassName: string, testMethod: string, workspacePath: string, buildTool: BuildTool) => {
       logger.appendLine(`[INFO] Running test ${testClassName}.${testMethod}`);
-      await runSpockTest(testClassName, testMethod, workspacePath, buildTool, testExecutionService, logger, false);
+      await runSpockTest(testClassName, testMethod, workspacePath, logger, false);
     })
   );
 
@@ -51,7 +51,7 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.commands.registerCommand('spock-test-runner-vscode.debugSpecificTest', async (testClassName: string, testMethod: string, workspacePath: string, buildTool: BuildTool) => {
       logger.appendLine(`[INFO] Debugging test ${testClassName}.${testMethod}`);
-      await runSpockTest(testClassName, testMethod, workspacePath, buildTool, testExecutionService, logger, true);
+      await runSpockTest(testClassName, testMethod, workspacePath, logger, true);
     })
   );
 
@@ -68,8 +68,6 @@ async function runSpockTest(
   testClassName: string, 
   testMethod: string | null, 
   workspacePath: string, 
-  buildTool: BuildTool, 
-  testExecutionService: TestExecutionService, 
   logger: vscode.OutputChannel,
   debug: boolean = false
 ) {
@@ -81,7 +79,7 @@ async function runSpockTest(
     ? `${testClassName}.${testMethod}` 
     : `${testClassName}`;
   
-  const commandArgs = BuildToolService.buildCommandArgs(buildTool, escapedTestName, debug, undefined, workspacePath, logger);
+  const commandArgs = BuildToolService.buildCommandArgs(escapedTestName, debug, workspacePath, logger);
 
   try {
     terminal.sendText(`cd ${workspacePath}`);
@@ -89,8 +87,7 @@ async function runSpockTest(
     terminal.sendText(fullCommand);
 
     if (debug) {
-      const debugPort = buildTool === 'gradle' ? '5005' : 'custom port';
-      vscode.window.showInformationMessage(`Debugger is ready to attach. The test will wait for debugger connection on ${debugPort}.`);
+      vscode.window.showInformationMessage('Debugger is ready to attach. The test will wait for debugger connection on port 5005.');
     }
 
   } catch (error: unknown) {

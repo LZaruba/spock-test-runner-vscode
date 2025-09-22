@@ -13,7 +13,7 @@ export interface TestResult {
   testOutput?: string;
 }
 
-export type BuildTool = 'gradle' | 'maven';
+export type BuildTool = 'gradle';
 
 export interface TestExecutionOptions {
   className: string;

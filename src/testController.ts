@@ -227,7 +227,7 @@ export class SpockTestController {
 
       const buildTool = BuildToolService.detectBuildTool(workspaceFolder.uri.fsPath);
       if (!buildTool) {
-        throw new Error('No build tool detected (Gradle/Maven)');
+        throw new Error('No build tool detected (Gradle)');
       }
 
       const result = await this.testExecutionService.executeTest({
