@@ -46,7 +46,8 @@ export class TestExecutionService {
         escapedTestName, 
         options.debug, 
         debugPort,
-        options.workspacePath
+        options.workspacePath,
+        this.logger
       );
 
       // Start debug session if debugging

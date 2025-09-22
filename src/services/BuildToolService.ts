@@ -1,5 +1,6 @@
 import * as path from 'path';
 import * as fs from 'fs';
+import * as vscode from 'vscode';
 import { BuildTool } from '../types';
 
 export class BuildToolService {
@@ -46,23 +47,37 @@ export class BuildToolService {
     testName: string, 
     debug: boolean, 
     debugPort?: number,
-    workspacePath?: string
+    workspacePath?: string,
+    logger?: vscode.OutputChannel
   ): string[] {
     const escapedTestName = testName;
     
     if (buildTool === 'gradle') {
       const gradleCommand = (workspacePath && this.hasGradleWrapper(workspacePath)) ? './gradlew' : 'gradle';
       const baseArgs = [gradleCommand, 'test', '--tests', escapedTestName];
-      const timestampArg = `-Dorg.gradle.jvmargs=-Dtest.timestamp=${Date.now()}`;
+      
+      // Use init script to force test execution
+      const initScriptPath = this.getInitScriptPath();
+      const initScriptArgs = ['--init-script', initScriptPath];
+      
+      // Log the force execution approach
+      if (logger) {
+        logger.appendLine(`BuildToolService: Using Gradle init script to force test execution (--init-script)`);
+      }
       
       if (debug) {
-        return [...baseArgs, '--debug-jvm', timestampArg];
+        return [...baseArgs, '--debug-jvm', ...initScriptArgs];
       } else {
-        return [...baseArgs, timestampArg];
+        return [...baseArgs, ...initScriptArgs];
       }
     } else {
-      // Maven
-      const baseArgs = ['mvn', 'test', `-Dtest=${escapedTestName}`, `-Dtest.timestamp=${Date.now()}`];
+      // Maven - use clean test to force execution
+      const baseArgs = ['mvn', 'clean', 'test', `-Dtest=${escapedTestName}`];
+      
+      // Log the force execution approach
+      if (logger) {
+        logger.appendLine(`BuildToolService: Using Maven clean test to force test execution`);
+      }
       
       if (debug && debugPort) {
         const debugArg = `-Dmaven.surefire.debug=-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=${debugPort}`;
@@ -71,6 +86,18 @@ export class BuildToolService {
         return baseArgs;
       }
     }
+  }
+
+  private static getInitScriptPath(): string {
+    // Get the path to the init script relative to the extension
+    const initScriptPath = path.join(__dirname, '..', '..', 'force-tests.init.gradle');
+    
+    // Verify the init script exists
+    if (!fs.existsSync(initScriptPath)) {
+      throw new Error(`Init script not found at: ${initScriptPath}`);
+    }
+    
+    return initScriptPath;
   }
 
   static hasGradleWrapper(workspacePath: string): boolean {

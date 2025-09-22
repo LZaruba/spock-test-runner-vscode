@@ -35,7 +35,7 @@ export function activate(context: vscode.ExtensionContext) {
         return;
       }
 
-      await runSpockTest(testClassName, null, workspaceFolder.uri.fsPath, buildTool, testExecutionService, false);
+      await runSpockTest(testClassName, null, workspaceFolder.uri.fsPath, buildTool, testExecutionService, logger, false);
     })
   );
 
@@ -43,7 +43,7 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.commands.registerCommand('spock-test-runner-vscode.runSpecificTest', async (testClassName: string, testMethod: string, workspacePath: string, buildTool: BuildTool) => {
       logger.appendLine(`[INFO] Running test ${testClassName}.${testMethod}`);
-      await runSpockTest(testClassName, testMethod, workspacePath, buildTool, testExecutionService, false);
+      await runSpockTest(testClassName, testMethod, workspacePath, buildTool, testExecutionService, logger, false);
     })
   );
 
@@ -51,7 +51,7 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     vscode.commands.registerCommand('spock-test-runner-vscode.debugSpecificTest', async (testClassName: string, testMethod: string, workspacePath: string, buildTool: BuildTool) => {
       logger.appendLine(`[INFO] Debugging test ${testClassName}.${testMethod}`);
-      await runSpockTest(testClassName, testMethod, workspacePath, buildTool, testExecutionService, true);
+      await runSpockTest(testClassName, testMethod, workspacePath, buildTool, testExecutionService, logger, true);
     })
   );
 
@@ -70,6 +70,7 @@ async function runSpockTest(
   workspacePath: string, 
   buildTool: BuildTool, 
   testExecutionService: TestExecutionService, 
+  logger: vscode.OutputChannel,
   debug: boolean = false
 ) {
   const terminal = vscode.window.createTerminal('Spock Test Runner');
@@ -80,7 +81,7 @@ async function runSpockTest(
     ? `${testClassName}.${testMethod}` 
     : `${testClassName}`;
   
-  const commandArgs = BuildToolService.buildCommandArgs(buildTool, escapedTestName, debug, undefined, workspacePath);
+  const commandArgs = BuildToolService.buildCommandArgs(buildTool, escapedTestName, debug, undefined, workspacePath, logger);
 
   try {
     terminal.sendText(`cd ${workspacePath}`);
