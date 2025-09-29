@@ -1,8 +1,8 @@
-import * as vscode from 'vscode';
 import * as path from 'path';
+import * as vscode from 'vscode';
+import { BuildToolService } from './services/BuildToolService';
 import { TestDiscoveryService } from './services/TestDiscoveryService';
 import { TestExecutionService } from './services/TestExecutionService';
-import { BuildToolService } from './services/BuildToolService';
 
 export class SpockTestController {
   private controller: vscode.TestController;
@@ -150,18 +150,56 @@ export class SpockTestController {
         this.logger.appendLine(`SpockTestController: Found test method: ${testMethod.name}`);
         testCount++;
         
-        const testItem = this.controller.createTestItem(
-          `${file.uri.toString()}#${testClass.name}#${testMethod.name}`,
-          testMethod.name,
-          file.uri
-        );
-        testItem.range = testMethod.range;
-        this.testData.set(testItem, {
-          type: 'test',
-          className: testClass.name,
-          testName: testMethod.name
-        });
-        classItem.children.add(testItem);
+        if (testMethod.isDataDriven && testMethod.dataIterations) {
+          // Create parent test item for data-driven test
+          const parentTestItem = this.controller.createTestItem(
+            `${file.uri.toString()}#${testClass.name}#${testMethod.name}`,
+            testMethod.name,
+            file.uri
+          );
+          parentTestItem.range = testMethod.range;
+          parentTestItem.canResolveChildren = false;
+          this.testData.set(parentTestItem, {
+            type: 'test',
+            className: testClass.name,
+            testName: testMethod.name
+          });
+          classItem.children.add(parentTestItem);
+          
+          // Create child test items for each iteration
+          for (const iteration of testMethod.dataIterations) {
+            const iterationItem = this.controller.createTestItem(
+              `${file.uri.toString()}#${testClass.name}#${testMethod.name}#${iteration.index}`,
+              iteration.displayName,
+              file.uri
+            );
+            iterationItem.range = iteration.range;
+            this.testData.set(iterationItem, {
+              type: 'dataIteration' as const,
+              className: testClass.name,
+              testName: testMethod.name,
+              iterationIndex: iteration.index,
+              dataValues: iteration.dataValues,
+              displayName: iteration.displayName
+            });
+            parentTestItem.children.add(iterationItem);
+            testCount++;
+          }
+        } else {
+          // Regular test method
+          const testItem = this.controller.createTestItem(
+            `${file.uri.toString()}#${testClass.name}#${testMethod.name}`,
+            testMethod.name,
+            file.uri
+          );
+          testItem.range = testMethod.range;
+          this.testData.set(testItem, {
+            type: 'test',
+            className: testClass.name,
+            testName: testMethod.name
+          });
+          classItem.children.add(testItem);
+        }
       }
     }
     
@@ -204,6 +242,17 @@ export class SpockTestController {
           break;
         case 'test':
           await this.runTest(test, data, run, debug);
+          break;
+        case 'dataIteration' as const:
+          // For data iterations, run the parent test method
+          const parentTestId = `${test.uri?.toString()}#${data.className}#${data.testName}`;
+          const parentTest = this.controller.items.get(parentTestId);
+          if (parentTest) {
+            const parentData = this.testData.get(parentTest);
+            if (parentData) {
+              await this.runTest(parentTest, parentData, run, debug);
+            }
+          }
           break;
       }
     }
@@ -256,7 +305,10 @@ export class SpockTestController {
 }
 
 interface TestData {
-  type: 'file' | 'class' | 'test';
+  type: 'file' | 'class' | 'test' | 'dataIteration';
   className?: string;
   testName?: string;
+  iterationIndex?: number;
+  dataValues?: Record<string, any>;
+  displayName?: string;
 }

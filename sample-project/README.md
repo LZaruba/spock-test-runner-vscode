@@ -1,65 +1,177 @@
-# Spock Sample Project
+# Bowling Game Sample Project
 
-This is a sample Gradle project with Spock tests to demonstrate the spock-test-runner-vscode VS Code extension by Lukas Zaruba.
+This sample project demonstrates the Spock Test Runner VS Code extension with a complete bowling game implementation and comprehensive test suite.
 
-## Project Structure
+## 🎯 Project Structure
 
 ```
 sample-project/
-├── build.gradle              # Gradle build configuration
-├── settings.gradle           # Gradle settings
-├── gradle.properties         # Gradle properties
-├── README.md                 # This file
-└── src/
-    └── test/
-        └── groovy/
-            └── com/
-                └── example/
-                    ├── CalculatorSpec.groovy    # Calculator tests
-                    ├── Calculator.java          # Calculator implementation
-                    ├── UserServiceSpec.groovy   # UserService tests
-                    ├── UserService.java         # UserService implementation
-                    └── User.java                # User model
+├── src/main/java/com/example/
+│   ├── BowlingGame.java          # Main bowling game logic
+│   ├── Frame.java                # Frame representation
+│   └── BowlingException.java     # Custom exceptions
+├── src/test/groovy/com/example/
+│   ├── BowlingGameSpec.groovy    # Comprehensive Spock tests
+│   ├── FrameSpec.groovy          # Frame-specific tests
+│   ├── ComplexDataSpec.groovy    # Complex data-driven tests
+│   ├── EmptySpec.groovy          # Empty test class (edge case)
+│   ├── NestedClassSpec.groovy    # Nested classes (edge case)
+│   ├── AbstractSpec.groovy       # Abstract test class (edge case)
+│   ├── MalformedSpec.groovy      # Malformed syntax (edge case)
+│   ├── CalculatorSpec.groovy     # Original calculator tests
+│   ├── UserServiceSpec.groovy    # Original user service tests
+│   ├── DataDrivenSpec.groovy     # All where block variations
+│   └── Person.groovy             # Person data class
+└── README.md
 ```
 
-## Test Classes
+## 🎮 Bowling Game Features
 
-### CalculatorSpec
-Tests for a simple calculator with basic arithmetic operations:
-- Addition
-- Subtraction
-- Multiplication
-- Division
-- Division by zero error handling
-- Multiple operations
+### Core Classes
+- **BowlingGame**: Main game logic with scoring, frame management, and validation
+- **Frame**: Individual frame representation with strike/spare detection
+- **BowlingException**: Custom exception for bowling-specific errors
 
-### UserServiceSpec
-Tests for a user service with CRUD operations:
-- User creation with valid data
-- User creation with invalid email
-- User creation with empty name
-- Finding user by ID
-- Handling non-existent users
+### Game Rules Implemented
+- ✅ Standard 10-pin bowling rules
+- ✅ Strike detection and bonus scoring
+- ✅ Spare detection and bonus scoring
+- ✅ Last frame special handling (3 rolls for strike/spare)
+- ✅ Input validation (0-10 pins per roll)
+- ✅ Game state tracking (current frame, roll, completion)
 
-## Running Tests
+## 🧪 Test Coverage
 
-You can run these tests using:
+### Comprehensive Test Classes
 
+#### 1. **BowlingGameSpec.groovy** - Main Test Suite
+- **15 test methods** showcasing all `where:` block variations:
+  - Pipe separators (`|`)
+  - Double pipe separators (`||`)
+  - Semicolon separators (`;`, `;;`)
+  - Mixed separators
+  - Single column tables
+  - Placeholders in method names (`#frame`, `#expectedScore`)
+  - Complex placeholders (`#gameState`, `#expectedScore`)
+  - Data pipes (`<<`)
+  - Multiple data pipes
+  - @Unroll annotations
+  - Complex data structures
+
+#### 2. **FrameSpec.groovy** - Frame-Specific Tests
+- Frame creation and initialization
+- Roll validation and constraints
+- Strike/spare detection
+- Last frame special handling
+- Frame equality and display
+
+#### 3. **ComplexDataSpec.groovy** - Advanced Data Testing
+- Complex data structures (Lists, Maps)
+- Nested data validation
+- Range and step range testing
+- Multiple data source combinations
+
+#### 4. **Edge Case Test Classes**
+- **EmptySpec.groovy**: Empty test class
+- **NestedClassSpec.groovy**: Nested test classes
+- **AbstractSpec.groovy**: Abstract test classes
+- **MalformedSpec.groovy**: Malformed Groovy syntax
+
+## 🚀 Running the Tests
+
+### Using VS Code Extension
+1. Run the launcher script:
+   ```bash
+   ./run-vscode.sh
+   ```
+2. Open Test Explorer (Ctrl+Shift+P → "Test: Focus on Test Explorer View")
+3. Run individual tests or test classes
+4. Debug tests by setting breakpoints
+
+### Using Gradle
 ```bash
-# Run all tests
 ./gradlew test
-
-# Run specific test class
-./gradlew test --tests "com.example.CalculatorSpec"
-
-# Run specific test method
-./gradlew test --tests "com.example.CalculatorSpec.should add two numbers correctly"
 ```
 
-## VS Code Extension
+### Using Maven
+```bash
+mvn test
+```
 
-This project is designed to work with the spock-test-runner-vscode VS Code extension, which provides:
-- Test discovery and execution through VS Code's Test API
-- Debug support for Spock tests
-- Integration with VS Code's testing UI
-- Support for both Gradle and Maven projects
+## 🎯 Where Block Variations Demonstrated
+
+### 1. **Basic Data Tables**
+```groovy
+where:
+roll1 | roll2 | expectedScore
+3     | 4     | 7
+5     | 2     | 7
+```
+
+### 2. **Double Pipe Separators**
+```groovy
+where:
+pins || expectedScore
+10   || 10
+5    || 5
+```
+
+### 3. **Semicolon Separators**
+```groovy
+where:
+roll1 ; roll2 ; nextRoll ;; expectedScore
+5     ; 5     ; 3        ;; 18
+7     ; 3     ; 4        ;; 18
+```
+
+### 4. **Placeholders in Method Names**
+```groovy
+def "strike in frame #frame should give bonus points"(int frame, int expectedBonus)
+```
+
+### 5. **Data Pipes**
+```groovy
+where:
+pins << [10, 5, 0, 11]
+shouldThrow << [false, false, false, true]
+```
+
+### 6. **Complex Data Structures**
+```groovy
+where:
+scenario << ["perfect game", "gutter game", "spare game"]
+rolls << [
+    [10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10],
+    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    [5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5]
+]
+expectedScore << [300, 0, 150]
+```
+
+### 7. **@Unroll Annotations**
+```groovy
+@Unroll("#featureName[#iterationIndex] - Frame #frame: #roll1, #roll2 = #expectedScore")
+def "frame scoring test"()
+```
+
+## 🔧 Extension Testing
+
+This sample project is designed to test all aspects of the Spock Test Runner extension:
+
+- **Test Discovery**: All test classes and methods are discovered
+- **Data-Driven Tests**: All `where:` block variations are parsed
+- **Test Execution**: Individual tests and iterations can be run
+- **Test Debugging**: Breakpoints can be set in Java and Groovy code
+- **Edge Cases**: Empty files, nested classes, malformed syntax
+- **Real Scenarios**: Actual business logic testing
+
+## 📊 Test Statistics
+
+- **Total Test Classes**: 10
+- **Total Test Methods**: 50+
+- **Data-Driven Tests**: 30+
+- **Where Block Variations**: 15+
+- **Edge Cases**: 5+
+- **Real Java Classes**: 3
+
+This comprehensive test suite ensures the Spock Test Runner extension works correctly with real-world Spock test scenarios!
