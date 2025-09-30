@@ -10,8 +10,8 @@ export class SpockTestController {
   private testData = new WeakMap<vscode.TestItem, TestData>();
   private testExecutionService: TestExecutionService;
 
-  constructor(context: vscode.ExtensionContext) {
-    this.logger = vscode.window.createOutputChannel('Spock Test Runner');
+  constructor(context: vscode.ExtensionContext, logger: vscode.OutputChannel) {
+    this.logger = logger;
     this.logger.appendLine('SpockTestController: Initializing...');
     
     this.controller = vscode.tests.createTestController(
@@ -25,15 +25,40 @@ export class SpockTestController {
     this.setupTestController();
     this.setupFileWatchers();
     this.createRunProfiles();
+    this.registerCommands(context);
 
-    context.subscriptions.push(this.controller, this.logger);
+    // Add debugging to see if VS Code calls any methods on our controller
+    this.logger.appendLine('SpockTestController: Setting up controller debugging...');
+    
+    // Override the controller's items property to track when it's accessed
+    const originalItems = this.controller.items;
+    Object.defineProperty(this.controller, 'items', {
+      get: () => {
+        this.logger.appendLine('SpockTestController: controller.items accessed');
+        return originalItems;
+      },
+      enumerable: true,
+      configurable: true
+    });
+
+    // Automatically discover tests on startup
+    this.logger.appendLine('SpockTestController: Starting automatic test discovery...');
+    this.discoverAllTests().catch(error => {
+      this.logger.appendLine(`SpockTestController: Error during automatic discovery: ${error}`);
+    });
+
+    context.subscriptions.push(this.controller);
   }
 
   private setupTestController(): void {
     this.controller.resolveHandler = async (test) => {
       this.logger.appendLine(`SpockTestController: resolveHandler called with test: ${test ? test.id : 'null'}`);
+      this.logger.appendLine(`SpockTestController: resolveHandler test type: ${test ? typeof test : 'null'}`);
+      this.logger.appendLine(`SpockTestController: resolveHandler test label: ${test ? test.label : 'null'}`);
+      this.logger.appendLine(`SpockTestController: resolveHandler test uri: ${test ? test.uri?.fsPath : 'null'}`);
+      
       if (!test) {
-        this.logger.appendLine('SpockTestController: Discovering all tests...');
+        this.logger.appendLine('SpockTestController: Discovering all tests (reload triggered)...');
         await this.discoverAllTests();
       } else {
         this.logger.appendLine(`SpockTestController: Discovering tests in file: ${test.uri?.fsPath}`);
@@ -51,28 +76,72 @@ export class SpockTestController {
       const pattern = new vscode.RelativePattern(workspaceFolder, '**/*.groovy');
       const watcher = vscode.workspace.createFileSystemWatcher(pattern);
 
-      watcher.onDidCreate(uri => this.discoverTestsInFile(this.getOrCreateFile(uri)));
-      watcher.onDidChange(uri => this.discoverTestsInFile(this.getOrCreateFile(uri)));
-      watcher.onDidDelete(uri => this.controller.items.delete(uri.toString()));
+      watcher.onDidCreate(uri => {
+        // Only process files that are NOT in the bin directory
+        if (!uri.fsPath.includes('/bin/')) {
+          this.logger.appendLine(`SpockTestController: File created: ${uri.fsPath}`);
+          this.discoverTestsInFile(this.getOrCreateFile(uri));
+        }
+      });
+      watcher.onDidChange(uri => {
+        // Only process files that are NOT in the bin directory
+        if (!uri.fsPath.includes('/bin/')) {
+          this.logger.appendLine(`SpockTestController: File changed: ${uri.fsPath}`);
+          this.discoverTestsInFile(this.getOrCreateFile(uri));
+        }
+      });
+      watcher.onDidDelete(uri => {
+        this.logger.appendLine(`SpockTestController: File deleted: ${uri.fsPath}`);
+        this.controller.items.delete(uri.toString());
+      });
     });
   }
 
   private createRunProfiles(): void {
+    const runnableTag = new vscode.TestTag('runnable');
+    
     const runProfile = this.controller.createRunProfile(
       'Run',
       vscode.TestRunProfileKind.Run,
-      (request, token) => this.runHandler(false, request, token)
+      (request, token) => this.runHandler(false, request, token),
+      true,
+      runnableTag
     );
 
     const debugProfile = this.controller.createRunProfile(
       'Debug',
       vscode.TestRunProfileKind.Debug,
-      (request, token) => this.runHandler(true, request, token)
+      (request, token) => this.runHandler(true, request, token),
+      true,
+      runnableTag
     );
+  }
+
+  private registerCommands(context: vscode.ExtensionContext): void {
+    // Register a manual reload command for debugging
+    const reloadCommand = vscode.commands.registerCommand('spock-test-runner.reloadTests', async () => {
+      this.logger.appendLine('SpockTestController: Manual reload command triggered');
+      await this.discoverAllTests();
+      this.logger.appendLine('SpockTestController: Manual reload completed');
+    });
+
+    // Try to hook into VS Code's test refresh mechanism
+    const refreshCommand = vscode.commands.registerCommand('testing.refreshTests', async () => {
+      this.logger.appendLine('SpockTestController: VS Code refresh command intercepted');
+      await this.discoverAllTests();
+      this.logger.appendLine('SpockTestController: VS Code refresh completed');
+    });
+
+    context.subscriptions.push(reloadCommand, refreshCommand);
   }
 
   private async discoverAllTests(): Promise<void> {
     this.logger.appendLine('SpockTestController: discoverAllTests called');
+    
+    // Clear all existing test items to avoid caching issues
+    this.logger.appendLine('SpockTestController: Clearing existing test items...');
+    this.controller.items.replace([]);
+    
     if (!vscode.workspace.workspaceFolders) {
       this.logger.appendLine('SpockTestController: No workspace folders found');
       return;
@@ -83,13 +152,15 @@ export class SpockTestController {
     for (const workspaceFolder of vscode.workspace.workspaceFolders) {
       this.logger.appendLine(`SpockTestController: Searching in workspace: ${workspaceFolder.uri.fsPath}`);
       const pattern = new vscode.RelativePattern(workspaceFolder, '**/*.groovy');
-      const files = await vscode.workspace.findFiles(pattern);
+      const excludePattern = new vscode.RelativePattern(workspaceFolder, '**/bin/**');
+      const files = await vscode.workspace.findFiles(pattern, excludePattern);
       
       this.logger.appendLine(`SpockTestController: Found ${files.length} .groovy files`);
       
       for (const file of files) {
         this.logger.appendLine(`SpockTestController: Processing file: ${file.fsPath}`);
-        this.getOrCreateFile(file);
+        const fileItem = this.getOrCreateFile(file);
+        await this.discoverTestsInFile(fileItem);
       }
     }
   }
@@ -99,6 +170,8 @@ export class SpockTestController {
       return;
     }
 
+    this.logger.appendLine(`SpockTestController: discoverTestsInFile called for: ${file.uri.fsPath}`);
+    
     try {
       const document = await vscode.workspace.openTextDocument(file.uri);
       const content = document.getText();
@@ -116,6 +189,7 @@ export class SpockTestController {
 
     const file = this.controller.createTestItem(uri.toString(), path.basename(uri.fsPath), uri);
     file.canResolveChildren = true;
+    file.tags = []; // Will be set properly in parseTestsInFile based on content
     this.testData.set(file, { type: 'file' });
     this.controller.items.add(file);
     return file;
@@ -133,9 +207,19 @@ export class SpockTestController {
 
     const testClasses = TestDiscoveryService.parseTestsInFile(content);
     let testCount = 0;
+    let hasRunnableClasses = false;
 
     for (const testClass of testClasses) {
       this.logger.appendLine(`SpockTestController: Found test class: ${testClass.name}`);
+      
+      // ADD DEBUG HERE - shows class details
+      this.logger.appendLine(`[DEBUG] Class ${testClass.name} - isAbstract: ${testClass.isAbstract}`);
+      
+      // Skip abstract classes entirely - they shouldn't appear in the test tree
+      if (testClass.isAbstract) {
+        this.logger.appendLine(`[DEBUG] Class ${testClass.name} - SKIPPED (abstract class)`);
+        continue;
+      }
       
       const classItem = this.controller.createTestItem(
         `${file.uri.toString()}#${testClass.name}`,
@@ -143,11 +227,18 @@ export class SpockTestController {
         file.uri
       );
       classItem.range = testClass.range;
+      classItem.tags = [new vscode.TestTag('runnable')];
+      hasRunnableClasses = true;
+      this.logger.appendLine(`[DEBUG] Class ${testClass.name} - ASSIGNED runnable tag`);
       this.testData.set(classItem, { type: 'class', className: testClass.name });
       file.children.add(classItem);
 
       for (const testMethod of testClass.methods) {
         this.logger.appendLine(`SpockTestController: Found test method: ${testMethod.name}`);
+        
+        // ADD DEBUG HERE - shows method details
+        this.logger.appendLine(`[DEBUG] Method ${testMethod.name} in class ${testClass.name}`);
+        
         testCount++;
         
         if (testMethod.isDataDriven && testMethod.dataIterations) {
@@ -159,6 +250,8 @@ export class SpockTestController {
           );
           parentTestItem.range = testMethod.range;
           parentTestItem.canResolveChildren = false;
+          parentTestItem.tags = [new vscode.TestTag('runnable')];
+          this.logger.appendLine(`[DEBUG] Data-driven method ${testMethod.name} - ASSIGNED runnable tag`);
           this.testData.set(parentTestItem, {
             type: 'test',
             className: testClass.name,
@@ -166,25 +259,9 @@ export class SpockTestController {
           });
           classItem.children.add(parentTestItem);
           
-          // Create child test items for each iteration
-          for (const iteration of testMethod.dataIterations) {
-            const iterationItem = this.controller.createTestItem(
-              `${file.uri.toString()}#${testClass.name}#${testMethod.name}#${iteration.index}`,
-              iteration.displayName,
-              file.uri
-            );
-            iterationItem.range = iteration.range;
-            this.testData.set(iterationItem, {
-              type: 'dataIteration' as const,
-              className: testClass.name,
-              testName: testMethod.name,
-              iterationIndex: iteration.index,
-              dataValues: iteration.dataValues,
-              displayName: iteration.displayName
-            });
-            parentTestItem.children.add(iterationItem);
-            testCount++;
-          }
+          // Don't create individual test items for data iterations
+          // They will be shown in test results when the parent test runs
+          // but won't have individual run actions
         } else {
           // Regular test method
           const testItem = this.controller.createTestItem(
@@ -193,6 +270,8 @@ export class SpockTestController {
             file.uri
           );
           testItem.range = testMethod.range;
+          testItem.tags = [new vscode.TestTag('runnable')];
+          this.logger.appendLine(`[DEBUG] Regular method ${testMethod.name} - ASSIGNED runnable tag`);
           this.testData.set(testItem, {
             type: 'test',
             className: testClass.name,
@@ -202,6 +281,18 @@ export class SpockTestController {
         }
       }
     }
+    
+    // Set file-level runnable tag based on whether it contains any runnable classes
+    if (hasRunnableClasses) {
+      file.tags = [new vscode.TestTag('runnable')];
+      this.logger.appendLine(`[DEBUG] File ${file.uri.fsPath} - ASSIGNED runnable tag (has runnable classes)`);
+    } else {
+      file.tags = [];
+      this.logger.appendLine(`[DEBUG] File ${file.uri.fsPath} - NO runnable tag (only abstract classes)`);
+    }
+    
+    // Debug: Log the actual tags on the file
+    this.logger.appendLine(`[DEBUG] File ${file.uri.fsPath} - Final tags: ${JSON.stringify(file.tags.map(t => t.id))}`);
     
     this.logger.appendLine(`SpockTestController: Parsed ${testCount} tests in file: ${file.uri.fsPath}`);
   }
@@ -242,17 +333,6 @@ export class SpockTestController {
           break;
         case 'test':
           await this.runTest(test, data, run, debug);
-          break;
-        case 'dataIteration' as const:
-          // For data iterations, run the parent test method
-          const parentTestId = `${test.uri?.toString()}#${data.className}#${data.testName}`;
-          const parentTest = this.controller.items.get(parentTestId);
-          if (parentTest) {
-            const parentData = this.testData.get(parentTest);
-            if (parentData) {
-              await this.runTest(parentTest, parentData, run, debug);
-            }
-          }
           break;
       }
     }
@@ -305,10 +385,7 @@ export class SpockTestController {
 }
 
 interface TestData {
-  type: 'file' | 'class' | 'test' | 'dataIteration';
+  type: 'file' | 'class' | 'test';
   className?: string;
   testName?: string;
-  iterationIndex?: number;
-  dataValues?: Record<string, any>;
-  displayName?: string;
 }

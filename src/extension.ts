@@ -1,8 +1,8 @@
-import * as vscode from 'vscode';
 import * as path from 'path';
-import { SpockTestController } from './testController';
+import * as vscode from 'vscode';
 import { BuildToolService } from './services/BuildToolService';
 import { TestExecutionService } from './services/TestExecutionService';
+import { SpockTestController } from './testController';
 import { BuildTool } from './types';
 
 export function activate(context: vscode.ExtensionContext) {
@@ -10,11 +10,11 @@ export function activate(context: vscode.ExtensionContext) {
   const diagnostic = vscode.languages.createDiagnosticCollection('spock-test-runner');
   const testExecutionService = new TestExecutionService(logger);
 
-  // Initialize the Test Controller
+  // Initialize the Test Controller with shared logger
   // Note: testController is never explicitly used after creation because it's self-contained
   // and automatically registers with VS Code's Test API. VS Code will call its methods
   // when users interact with the Test Explorer UI.
-  new SpockTestController(context);
+  new SpockTestController(context, logger);
 
   // Command to run all tests in a file
   context.subscriptions.push(

@@ -1,12 +1,9 @@
 import * as vscode from 'vscode';
 
 export interface TestData {
-  type: 'file' | 'class' | 'test' | 'dataIteration';
+  type: 'file' | 'class' | 'test';
   className?: string;
   testName?: string;
-  iterationIndex?: number;
-  dataValues?: Record<string, any>;
-  displayName?: string;
 }
 
 export interface TestResult {
@@ -55,4 +52,5 @@ export interface SpockTestClass {
   line: number;
   range: vscode.Range;
   methods: SpockTestMethod[];
+  isAbstract?: boolean;
 }

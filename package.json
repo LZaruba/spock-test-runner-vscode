@@ -44,6 +44,11 @@
       {
         "command": "spock-test-runner-vscode.debugSpecificTest",
         "title": "Debug This Test"
+      },
+      {
+        "command": "spock-test-runner.reloadTests",
+        "title": "Reload Spock Tests",
+        "category": "Spock Test Runner"
       }
     ],
     "menus": {
