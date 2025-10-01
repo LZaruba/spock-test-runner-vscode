@@ -100,6 +100,12 @@
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
     "test:ci": "jest --ci --coverage --watchAll=false",
+    "test:unit": "jest --testPathPatterns='TestResultParser|TestController'",
+    "test:integration": "jest --testPathPatterns='ParameterizedTestIntegration'",
+    "test:performance": "jest --testPathPatterns='ParameterizedTestPerformance'",
+    "test:parameterized": "jest --testPathPatterns='ParameterizedTest|TestResultParser'",
+    "test:e2e": "jest --testPathPatterns='E2E' --testTimeout=60000",
+    "test:all": "npm run test:unit && npm run test:integration && npm run test:performance && npm run test:parameterized",
     "package": "vsce package",
     "run-vscode": "./run-vscode.sh"
   },

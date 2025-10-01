@@ -1,14 +1,18 @@
+import * as fs from 'fs';
 import * as path from 'path';
 import * as vscode from 'vscode';
 import { BuildToolService } from './services/BuildToolService';
 import { TestDiscoveryService } from './services/TestDiscoveryService';
 import { TestExecutionService } from './services/TestExecutionService';
+import { TestResultParser } from './services/TestResultParser';
+import { TestIterationResult } from './types';
 
 export class SpockTestController {
   private controller: vscode.TestController;
   private logger: vscode.OutputChannel;
   private testData = new WeakMap<vscode.TestItem, TestData>();
   private testExecutionService: TestExecutionService;
+  private testResultParser: TestResultParser;
 
   constructor(context: vscode.ExtensionContext, logger: vscode.OutputChannel) {
     this.logger = logger;
@@ -20,6 +24,7 @@ export class SpockTestController {
     );
     
     this.testExecutionService = new TestExecutionService(this.logger);
+    this.testResultParser = new TestResultParser(this.logger);
     this.logger.appendLine('SpockTestController: TestController created');
 
     this.setupTestController();
@@ -241,7 +246,8 @@ export class SpockTestController {
         
         testCount++;
         
-        if (testMethod.isDataDriven && testMethod.dataIterations) {
+        if (testMethod.isDataDriven) {
+          this.logger.appendLine(`[DEBUG] Found data-driven method: ${testMethod.name} in class ${testClass.name}`);
           // Create parent test item for data-driven test
           const parentTestItem = this.controller.createTestItem(
             `${file.uri.toString()}#${testClass.name}#${testMethod.name}`,
@@ -255,7 +261,8 @@ export class SpockTestController {
           this.testData.set(parentTestItem, {
             type: 'test',
             className: testClass.name,
-            testName: testMethod.name
+            testName: testMethod.name,
+            isDataDriven: true
           });
           classItem.children.add(parentTestItem);
           
@@ -367,20 +374,233 @@ export class SpockTestController {
         debug
       }, run, test);
       
+      // Handle data-driven test results
+      if (data.isDataDriven && result.output) {
+        await this.handleDataDrivenTestResults(test, data, result, run, workspaceFolder.uri.fsPath);
+      } else {
+        // Regular test result
+        if (result.success) {
+          run.passed(test, Date.now() - start);
+        } else {
+          const errorInfo = result.errorInfo;
+          const message = new vscode.TestMessage(errorInfo?.error || 'Test failed');
+          if (errorInfo?.location) {
+            message.location = errorInfo.location;
+          }
+          run.failed(test, message, Date.now() - start);
+        }
+      }
+    } catch (error) {
+      const message = new vscode.TestMessage(error instanceof Error ? error.message : 'Unknown error');
+      run.failed(test, message, Date.now() - start);
+    }
+  }
+
+  /**
+   * Handle results for data-driven tests by creating iteration test items
+   */
+  private async handleDataDrivenTestResults(
+    test: vscode.TestItem, 
+    data: TestData, 
+    result: any, 
+    run: vscode.TestRun, 
+    workspacePath: string
+  ): Promise<void> {
+    this.logger.appendLine(`SpockTestController: Handling data-driven test results for ${data.className}.${data.testName}`);
+    
+    try {
+      // Parse iteration results
+      const iterationResults = await this.testResultParser.parseTestResults(
+        result.output || '',
+        data.testName!,
+        data.className!,
+        workspacePath
+      );
+
+      if (iterationResults.length > 0) {
+        this.logger.appendLine(`SpockTestController: Found ${iterationResults.length} iteration results`);
+        
+        // Update test data with iteration results
+        data.iterationResults = iterationResults;
+        this.testData.set(test, data);
+        
+        // Create flat test items for each iteration with test name prepended
+        this.createFlatIterationItems(test, iterationResults, run);
+      } else {
+        // No iteration results found, treat as regular test
+        this.logger.appendLine(`SpockTestController: No iteration results found, treating as regular test`);
+        if (result.success) {
+          run.passed(test, Date.now() - Date.now());
+        } else {
+          const errorInfo = result.errorInfo;
+          const message = new vscode.TestMessage(errorInfo?.error || 'Test failed');
+          if (errorInfo?.location) {
+            message.location = errorInfo.location;
+          }
+          run.failed(test, message, Date.now() - Date.now());
+        }
+      }
+    } catch (error) {
+      this.logger.appendLine(`SpockTestController: Error handling data-driven test results: ${error}`);
+      // Fallback to regular test result
       if (result.success) {
-        run.passed(test, Date.now() - start);
+        run.passed(test, Date.now() - Date.now());
       } else {
         const errorInfo = result.errorInfo;
         const message = new vscode.TestMessage(errorInfo?.error || 'Test failed');
         if (errorInfo?.location) {
           message.location = errorInfo.location;
         }
-        run.failed(test, message, Date.now() - start);
+        run.failed(test, message, Date.now() - Date.now());
       }
-    } catch (error) {
-      const message = new vscode.TestMessage(error instanceof Error ? error.message : 'Unknown error');
-      run.failed(test, message, Date.now() - start);
     }
+  }
+
+
+
+  /**
+   * Create flat test items for parameterized test iterations
+   */
+  private createFlatIterationItems(
+    parentTest: vscode.TestItem, 
+    iterationResults: TestIterationResult[], 
+    run: vscode.TestRun
+  ): void {
+    this.logger.appendLine(`SpockTestController: Creating ${iterationResults.length} flat iteration items`);
+    
+    // Get the test name from the parent test
+    const testName = parentTest.label;
+    const className = this.testData.get(parentTest)?.className || 'Unknown';
+    
+    // Sort iterations by index
+    const sortedResults = iterationResults.sort((a, b) => a.index - b.index);
+    
+    for (const iteration of sortedResults) {
+      // Create a flat test item with test name prepended
+      const iterationId = `${parentTest.id}#iteration-${iteration.index}`;
+      const iterationLabel = `${testName} [#${iteration.index}] ${this.formatParameters(iteration.parameters)}`;
+      
+      const iterationItem = this.controller.createTestItem(
+        iterationId,
+        iterationLabel,
+        parentTest.uri
+      );
+      
+      // Set the range to the specific line in the where block for this iteration
+      const iterationRange = this.calculateIterationRange(parentTest, iteration);
+      iterationItem.range = iterationRange;
+      
+      // Set iteration data
+      this.testData.set(iterationItem, {
+        type: 'test',
+        className: className,
+        testName: testName,
+        isDataDriven: false // Individual iterations are not data-driven themselves
+      });
+      
+      // Add to the controller (not as a child, but as a sibling)
+      this.controller.items.add(iterationItem);
+      
+      // Set result status for the iteration
+      if (iteration.success) {
+        run.passed(iterationItem, iteration.duration * 1000);
+      } else {
+        const message = new vscode.TestMessage(iteration.errorInfo?.error || 'Iteration failed');
+        if (iteration.errorInfo?.location) {
+          message.location = iteration.errorInfo.location;
+        }
+        run.failed(iterationItem, message, iteration.duration * 1000);
+      }
+      
+      this.logger.appendLine(`SpockTestController: Created flat iteration item: ${iterationLabel}`);
+    }
+    
+    // Mark the parent test as passed/failed based on all iterations
+    const allPassed = iterationResults.every(iter => iter.success);
+    if (allPassed) {
+      run.passed(parentTest, Date.now() - Date.now());
+    } else {
+      const failedCount = iterationResults.filter(iter => !iter.success).length;
+      const message = new vscode.TestMessage(`${failedCount} of ${iterationResults.length} iterations failed`);
+      run.failed(parentTest, message, Date.now() - Date.now());
+    }
+  }
+
+  /**
+   * Calculate the range for a specific iteration in the where block
+   */
+  private calculateIterationRange(parentTest: vscode.TestItem, iteration: TestIterationResult): vscode.Range {
+    if (!parentTest.uri) {
+      return parentTest.range || new vscode.Range(0, 0, 0, 0);
+    }
+
+    try {
+      // Read the file content to find the where block
+      const content = fs.readFileSync(parentTest.uri.fsPath, 'utf8');
+      const lines = content.split('\n');
+      
+      // Find the test method and where block
+      const testName = parentTest.label;
+      let testMethodLine = -1;
+      let whereBlockLine = -1;
+      
+      // Find the test method line
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        if (line.includes(`def "${testName}"`) || line.includes(`def ${testName}`)) {
+          testMethodLine = i;
+          break;
+        }
+      }
+      
+      if (testMethodLine === -1) {
+        return parentTest.range || new vscode.Range(0, 0, 0, 0);
+      }
+      
+      // Find the where block after the test method
+      for (let i = testMethodLine; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (line === 'where:') {
+          whereBlockLine = i;
+          break;
+        }
+      }
+      
+      if (whereBlockLine === -1) {
+        return parentTest.range || new vscode.Range(0, 0, 0, 0);
+      }
+      
+      // Calculate the line for this iteration
+      // Skip the header line (e.g., "a | b | c") and go to the data line
+      const dataStartLine = whereBlockLine + 2; // Skip "where:" and header
+      const iterationLine = dataStartLine + iteration.index;
+      
+      // Make sure we don't go beyond the file
+      if (iterationLine >= lines.length) {
+        return parentTest.range || new vscode.Range(0, 0, 0, 0);
+      }
+      
+      // Return the range for the specific iteration line
+      return new vscode.Range(iterationLine, 0, iterationLine, lines[iterationLine].length);
+      
+    } catch (error) {
+      this.logger.appendLine(`Error calculating iteration range: ${error}`);
+      return parentTest.range || new vscode.Range(0, 0, 0, 0);
+    }
+  }
+
+  /**
+   * Format parameters for display in test item label
+   */
+  private formatParameters(parameters: Record<string, any>): string {
+    const entries = Object.entries(parameters);
+    if (entries.length === 0) {
+      return '';
+    }
+    
+    return entries
+      .map(([key, value]) => `${key}: ${value}`)
+      .join(', ');
   }
 }
 
@@ -388,4 +608,6 @@ interface TestData {
   type: 'file' | 'class' | 'test';
   className?: string;
   testName?: string;
+  isDataDriven?: boolean;
+  iterationResults?: TestIterationResult[];
 }

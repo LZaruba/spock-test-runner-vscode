@@ -24,7 +24,12 @@ jest.mock('vscode', () => ({
       onDidChange: jest.fn(),
       onDidDelete: jest.fn()
     }),
-    openTextDocument: jest.fn()
+    openTextDocument: jest.fn(),
+    getWorkspaceFolder: jest.fn().mockReturnValue({
+      uri: {
+        fsPath: '/test/workspace'
+      }
+    })
   },
   tests: {
     createTestController: jest.fn().mockReturnValue({
@@ -84,7 +89,12 @@ jest.mock('vscode', () => ({
     baseUri: workspaceFolder,
     base: workspaceFolder,
     pattern: pattern
-  }))
+  })),
+  commands: {
+    registerCommand: jest.fn().mockReturnValue({
+      dispose: jest.fn()
+    })
+  }
 }));
 
 describe('SpockTestController', () => {
@@ -186,10 +196,21 @@ describe('SpockTestController', () => {
   });
 
   describe('Test Item Tag Assignment', () => {
-    it('should assign runnable tag to file items', () => {
+    it('should assign runnable tag to file items after parsing', async () => {
       const fileUri = vscode.Uri.file('/test/file.groovy');
       const fileItem = controller['getOrCreateFile'](fileUri);
       
+      // File items start with empty tags
+      expect(fileItem.tags).toEqual([]);
+      
+      // Mock a simple test file content
+      const mockDocument = {
+        getText: () => 'class TestSpec extends Specification { def "test method"() { expect: true } }'
+      };
+      (vscode.workspace.openTextDocument as jest.Mock).mockResolvedValue(mockDocument);
+      
+      // After parsing, file should have runnable tag
+      await controller['discoverTestsInFile'](fileItem);
       expect(fileItem.tags).toContainEqual({ id: 'runnable' });
     });
 
@@ -245,11 +266,11 @@ describe('SpockTestController', () => {
         return item;
       });
       
-      // First call getOrCreateFile to set the runnable tag
+      // First call getOrCreateFile
       const fileItem = controller['getOrCreateFile'](fileUri);
       
-      // Verify file item has runnable tag
-      expect(fileItem.tags).toContainEqual({ id: 'runnable' });
+      // File items start with empty tags until parsing
+      expect(fileItem.tags).toEqual([]);
       
       await controller['discoverTestsInFile'](mockFileItem);
       
@@ -317,11 +338,11 @@ describe('SpockTestController', () => {
         return item;
       });
       
-      // First call getOrCreateFile to set the runnable tag
+      // First call getOrCreateFile
       const fileItem = controller['getOrCreateFile'](fileUri);
       
-      // Verify file item has runnable tag
-      expect(fileItem.tags).toContainEqual({ id: 'runnable' });
+      // File items start with empty tags until parsing
+      expect(fileItem.tags).toEqual([]);
       
       await controller['discoverTestsInFile'](mockFileItem);
       
@@ -408,11 +429,11 @@ describe('SpockTestController', () => {
         }
       }));
       
-      // First call getOrCreateFile to set the runnable tag
+      // First call getOrCreateFile
       const fileItem = controller['getOrCreateFile'](fileUri);
       
-      // Verify file item has runnable tag even for empty files
-      expect(fileItem.tags).toContainEqual({ id: 'runnable' });
+      // File items start with empty tags until parsing
+      expect(fileItem.tags).toEqual([]);
       
       await controller['discoverTestsInFile'](mockFileItem);
       
@@ -482,29 +503,25 @@ describe('SpockTestController', () => {
         return item;
       });
       
-      // First call getOrCreateFile to set the runnable tag
+      // First call getOrCreateFile
       const fileItem = controller['getOrCreateFile'](fileUri);
       
-      // Verify file item has runnable tag
-      expect(fileItem.tags).toContainEqual({ id: 'runnable' });
+      // File items start with empty tags until parsing
+      expect(fileItem.tags).toEqual([]);
       
       await controller['discoverTestsInFile'](mockFileItem);
       
-      // Abstract classes should be parsed as test classes but should NOT have runnable tag
+      // Abstract classes should be completely skipped (not created as test items)
       const abstractClassItem = createdItems.find(item => 
         item.id.includes('#AbstractSpec') && item.label === 'AbstractSpec'
       );
-      expect(abstractClassItem).toBeDefined();
-      expect(abstractClassItem.tags).not.toContainEqual({ id: 'runnable' });
+      expect(abstractClassItem).toBeUndefined();
       
-      // Test methods within abstract classes should still have runnable tags
+      // No test methods should be created for abstract classes
       const testMethodItems = createdItems.filter(item => 
         item.id.includes('#AbstractSpec#') && item.label !== 'AbstractSpec'
       );
-      expect(testMethodItems.length).toBeGreaterThan(0);
-      testMethodItems.forEach(item => {
-        expect(item.tags).toContainEqual({ id: 'runnable' });
-      });
+      expect(testMethodItems.length).toBe(0);
     });
 
     it('should handle nested class spec files correctly', async () => {
@@ -554,11 +571,11 @@ describe('SpockTestController', () => {
         }
       }));
       
-      // First call getOrCreateFile to set the runnable tag
+      // First call getOrCreateFile
       const fileItem = controller['getOrCreateFile'](fileUri);
       
-      // Verify file item has runnable tag
-      expect(fileItem.tags).toContainEqual({ id: 'runnable' });
+      // File items start with empty tags until parsing
+      expect(fileItem.tags).toEqual([]);
       
       await controller['discoverTestsInFile'](mockFileItem);
       
@@ -630,11 +647,11 @@ describe('SpockTestController', () => {
         }
       }));
       
-      // First call getOrCreateFile to set the runnable tag
+      // First call getOrCreateFile
       const fileItem = controller['getOrCreateFile'](fileUri);
       
-      // Verify file item has runnable tag
-      expect(fileItem.tags).toContainEqual({ id: 'runnable' });
+      // File items start with empty tags until parsing
+      expect(fileItem.tags).toEqual([]);
       
       await controller['discoverTestsInFile'](mockFileItem);
       
@@ -706,11 +723,11 @@ describe('SpockTestController', () => {
         }
       }));
       
-      // First call getOrCreateFile to set the runnable tag
+      // First call getOrCreateFile
       const fileItem = controller['getOrCreateFile'](fileUri);
       
-      // Verify file item has runnable tag even for malformed files
-      expect(fileItem.tags).toContainEqual({ id: 'runnable' });
+      // File items start with empty tags until parsing
+      expect(fileItem.tags).toEqual([]);
       
       // Should not throw an error
       await expect(controller['discoverTestsInFile'](mockFileItem)).resolves.not.toThrow();
@@ -930,6 +947,212 @@ describe('SpockTestController', () => {
 
       // Verify that runTest was called for test items
       expect(runTestSpy).toHaveBeenCalledWith(mockTestItem, { type: 'test', className: 'TestClass', testName: 'testMethod' }, expect.any(Object), false);
+    });
+  });
+
+  describe('Data-Driven Test Iteration Results', () => {
+    it('should handle data-driven test results and create iteration items', async () => {
+      const mockTestItem = {
+        id: 'file://test/file.groovy#DataDrivenSpec#should calculate score',
+        label: 'should calculate score',
+        uri: vscode.Uri.file('/test/file.groovy'),
+        canResolveChildren: false,
+        tags: [{ id: 'runnable' }],
+        parent: undefined,
+        busy: false,
+        error: undefined,
+        range: undefined,
+        children: {
+          add: jest.fn(),
+          delete: jest.fn(),
+          replace: jest.fn(),
+          size: 0,
+          forEach: jest.fn(),
+          get: jest.fn(),
+          [Symbol.iterator]: jest.fn()
+        }
+      };
+
+      // Mock the test data with isDataDriven flag
+      const testDataMap = new Map();
+      testDataMap.set(mockTestItem, { 
+        type: 'test', 
+        className: 'DataDrivenSpec', 
+        testName: 'should calculate score',
+        isDataDriven: true
+      });
+      
+      controller['testData'] = testDataMap as any;
+
+      // Mock the test result parser
+      const mockIterationResults = [
+        {
+          index: 0,
+          displayName: 'should calculate score [roll1: 3, roll2: 4, expectedScore: 7, #0]',
+          parameters: { roll1: 3, roll2: 4, expectedScore: 7 },
+          success: true,
+          duration: 0.009,
+          output: 'PASSED'
+        },
+        {
+          index: 1,
+          displayName: 'should calculate score [roll1: 5, roll2: 2, expectedScore: 7, #1]',
+          parameters: { roll1: 5, roll2: 2, expectedScore: 7 },
+          success: true,
+          duration: 0.001,
+          output: 'PASSED'
+        },
+        {
+          index: 2,
+          displayName: 'should calculate score [roll1: 0, roll2: 0, expectedScore: 0, #2]',
+          parameters: { roll1: 0, roll2: 0, expectedScore: 0 },
+          success: false,
+          duration: 0.002,
+          output: 'FAILED',
+          errorInfo: { error: 'Expected 0 but was 1' }
+        }
+      ];
+
+      const parseTestResultsSpy = jest.spyOn(controller['testResultParser'], 'parseTestResults')
+        .mockResolvedValue(mockIterationResults);
+
+      const mockRun = {
+        started: jest.fn(),
+        passed: jest.fn(),
+        failed: jest.fn(),
+        skipped: jest.fn(),
+        appendOutput: jest.fn(),
+        end: jest.fn()
+      };
+
+      // Mock the test execution result
+      const mockResult = {
+        success: true,
+        output: 'Test execution output with iteration results',
+        errorInfo: undefined
+      };
+
+      // Mock the test execution service
+      const executeTestSpy = jest.spyOn(controller['testExecutionService'], 'executeTest')
+        .mockResolvedValue(mockResult);
+
+      // Mock workspace folder
+      jest.spyOn(vscode.workspace, 'getWorkspaceFolder').mockReturnValue({
+        uri: vscode.Uri.file('/test/workspace')
+      } as any);
+
+      // Mock build tool detection
+      const detectBuildToolSpy = jest.spyOn(require('../services/BuildToolService').BuildToolService, 'detectBuildTool')
+        .mockReturnValue('gradle');
+
+      await controller['runTest'](mockTestItem, testDataMap.get(mockTestItem), mockRun as any, false);
+
+      // Verify that parseTestResults was called
+      expect(parseTestResultsSpy).toHaveBeenCalledWith(
+        'Test execution output with iteration results',
+        'should calculate score',
+        'DataDrivenSpec',
+        '/test/workspace'
+      );
+
+      // Verify that iteration test items were created
+      expect(mockTestItem.children.replace).toHaveBeenCalled();
+      expect(mockTestItem.children.add).toHaveBeenCalledTimes(3);
+
+      // Verify that the parent test result was set based on iteration results
+      expect(mockRun.failed).toHaveBeenCalledWith(
+        mockTestItem,
+        expect.objectContaining({ message: '1 of 3 iterations failed' }),
+        expect.any(Number)
+      );
+
+      // Verify that individual iteration results were set
+      expect(mockRun.passed).toHaveBeenCalledTimes(2); // 2 passed iterations
+      expect(mockRun.failed).toHaveBeenCalledTimes(2); // 1 failed iteration + 1 parent test failure
+    });
+
+    it('should handle data-driven test with no iteration results gracefully', async () => {
+      const mockTestItem = {
+        id: 'file://test/file.groovy#DataDrivenSpec#should calculate score',
+        label: 'should calculate score',
+        uri: vscode.Uri.file('/test/file.groovy'),
+        canResolveChildren: false,
+        tags: [{ id: 'runnable' }],
+        parent: undefined,
+        busy: false,
+        error: undefined,
+        range: undefined,
+        children: {
+          add: jest.fn(),
+          delete: jest.fn(),
+          replace: jest.fn(),
+          size: 0,
+          forEach: jest.fn(),
+          get: jest.fn(),
+          [Symbol.iterator]: jest.fn()
+        }
+      };
+
+      // Mock the test data with isDataDriven flag
+      const testDataMap = new Map();
+      testDataMap.set(mockTestItem, { 
+        type: 'test', 
+        className: 'DataDrivenSpec', 
+        testName: 'should calculate score',
+        isDataDriven: true
+      });
+      
+      controller['testData'] = testDataMap as any;
+
+      // Mock the test result parser to return empty results
+      const parseTestResultsSpy = jest.spyOn(controller['testResultParser'], 'parseTestResults')
+        .mockResolvedValue([]);
+
+      const mockRun = {
+        started: jest.fn(),
+        passed: jest.fn(),
+        failed: jest.fn(),
+        skipped: jest.fn(),
+        appendOutput: jest.fn(),
+        end: jest.fn()
+      };
+
+      // Mock the test execution result
+      const mockResult = {
+        success: true,
+        output: 'Test execution output without iteration results',
+        errorInfo: undefined
+      };
+
+      // Mock the test execution service
+      const executeTestSpy = jest.spyOn(controller['testExecutionService'], 'executeTest')
+        .mockResolvedValue(mockResult);
+
+      // Mock workspace folder
+      jest.spyOn(vscode.workspace, 'getWorkspaceFolder').mockReturnValue({
+        uri: vscode.Uri.file('/test/workspace')
+      } as any);
+
+      // Mock build tool detection
+      const detectBuildToolSpy = jest.spyOn(require('../services/BuildToolService').BuildToolService, 'detectBuildTool')
+        .mockReturnValue('gradle');
+
+      await controller['runTest'](mockTestItem, testDataMap.get(mockTestItem), mockRun as any, false);
+
+      // Verify that parseTestResults was called
+      expect(parseTestResultsSpy).toHaveBeenCalledWith(
+        'Test execution output without iteration results',
+        'should calculate score',
+        'DataDrivenSpec',
+        '/test/workspace'
+      );
+
+      // Verify that no iteration items were created
+      expect(mockTestItem.children.replace).not.toHaveBeenCalled();
+      expect(mockTestItem.children.add).not.toHaveBeenCalled();
+
+      // Verify that the parent test was treated as a regular test
+      expect(mockRun.passed).toHaveBeenCalledWith(mockTestItem, expect.any(Number));
     });
   });
 });

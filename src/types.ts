@@ -4,6 +4,18 @@ export interface TestData {
   type: 'file' | 'class' | 'test';
   className?: string;
   testName?: string;
+  isDataDriven?: boolean;
+  iterationResults?: TestIterationResult[];
+}
+
+export interface TestIterationResult {
+  index: number;
+  displayName: string;
+  parameters: Record<string, any>;
+  success: boolean;
+  duration: number;
+  errorInfo?: { error: string; location?: vscode.Location };
+  output?: string;
 }
 
 export interface TestResult {
@@ -11,6 +23,7 @@ export interface TestResult {
   errorInfo?: { error: string; location?: vscode.Location };
   output?: string;
   testOutput?: string;
+  iterationResults?: TestIterationResult[];
 }
 
 export type BuildTool = 'gradle';
