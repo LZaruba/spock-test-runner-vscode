@@ -13,6 +13,7 @@ export class SpockTestController {
   private testData = new WeakMap<vscode.TestItem, TestData>();
   private testExecutionService: TestExecutionService;
   private testResultParser: TestResultParser;
+  private iterationItems = new Map<string, vscode.TestItem[]>(); // Track iteration items by file URI
 
   constructor(context: vscode.ExtensionContext, logger: vscode.OutputChannel) {
     this.logger = logger;
@@ -176,6 +177,9 @@ export class SpockTestController {
     }
 
     this.logger.appendLine(`SpockTestController: discoverTestsInFile called for: ${file.uri.fsPath}`);
+    
+    // Clean up old iteration items for this file
+    this.cleanupIterationItems(file.uri.toString());
     
     try {
       const document = await vscode.workspace.openTextDocument(file.uri);
@@ -459,6 +463,21 @@ export class SpockTestController {
 
 
   /**
+   * Clean up old iteration items for a file
+   */
+  private cleanupIterationItems(fileUri: string): void {
+    const items = this.iterationItems.get(fileUri);
+    if (items) {
+      this.logger.appendLine(`SpockTestController: Cleaning up ${items.length} old iteration items for ${fileUri}`);
+      for (const item of items) {
+        this.controller.items.delete(item.id);
+        this.testData.delete(item);
+      }
+      this.iterationItems.delete(fileUri);
+    }
+  }
+
+  /**
    * Create flat test items for parameterized test iterations
    */
   private createFlatIterationItems(
@@ -471,6 +490,7 @@ export class SpockTestController {
     // Get the test name from the parent test
     const testName = parentTest.label;
     const className = this.testData.get(parentTest)?.className || 'Unknown';
+    const fileUri = parentTest.uri?.toString() || '';
     
     // Sort iterations by index, with fallback to parameter-based sorting
     const sortedResults = iterationResults.sort((a, b) => {
@@ -484,6 +504,9 @@ export class SpockTestController {
       const bParams = Object.values(b.parameters).join(',');
       return aParams.localeCompare(bParams);
     });
+    
+    // Track iteration items for cleanup
+    const newIterationItems: vscode.TestItem[] = [];
     
     for (const iteration of sortedResults) {
       // Create a flat test item with test name prepended
@@ -511,6 +534,9 @@ export class SpockTestController {
       // Add to the controller (not as a child, but as a sibling)
       this.controller.items.add(iterationItem);
       
+      // Track this iteration item for cleanup
+      newIterationItems.push(iterationItem);
+      
       // Set result status for the iteration
       if (iteration.success) {
         run.passed(iterationItem, iteration.duration * 1000);
@@ -524,6 +550,9 @@ export class SpockTestController {
       
       this.logger.appendLine(`SpockTestController: Created flat iteration item: ${iterationLabel}`);
     }
+    
+    // Store the new iteration items for this file
+    this.iterationItems.set(fileUri, newIterationItems);
     
     // Mark the parent test as passed/failed based on all iterations
     const allPassed = iterationResults.every(iter => iter.success);
