@@ -19,38 +19,75 @@ export class TestResultParser {
 
     this.logger.appendLine(`TestResultParser: Parsing console output for test: ${testName}`);
 
-    for (const line of lines) {
-      // Look for Gradle test iteration patterns like:
-      // "DataDrivenSpec > maximum of two numbers > maximum of two numbers [a: 1, b: 3, c: 3, #0] PASSED"
-      // "DataDrivenSpec > should calculate square of number > should calculate square of number [input: 2, expected: 4, #0] PASSED"
-      const iterationMatch = line.match(new RegExp(`^.*>\\s*${testName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*\\[([^\\]]+),\\s*#(\\d+)\\]\\s*(PASSED|FAILED|SKIPPED)`));
+    // Check if this is a placeholder test (contains #)
+    if (testName.includes('#')) {
+      // For placeholder tests, look for the pattern:
+      // "DataDrivenSpec > maximum of #a and #b is #c > maximum of 1 and 3 is 3 PASSED"
+      const placeholderPattern = /^.*>\s*([^>]+?)\s*>\s*([^>]+?)\s*(PASSED|FAILED|SKIPPED)$/;
       
-      if (iterationMatch) {
-        const parametersString = iterationMatch[1];
-        const index = parseInt(iterationMatch[2]);
-        const status = iterationMatch[3];
-        
-        // Parse parameters from the string like "a: 1, b: 3, c: 3"
-        const parameters = this.parseParameters(parametersString);
-        
-        // Determine success based on status
-        const success = status === 'PASSED';
-        
-        // Extract duration if available (not present in this format)
-        const duration = 0;
+      for (const line of lines) {
+        const match = line.match(placeholderPattern);
+        if (match) {
+          const originalTestName = match[1].trim();
+          const unrolledName = match[2].trim();
+          const status = match[3];
+          
+          // Check if this matches our target test (the original placeholder name)
+          if (originalTestName === testName) {
+            const success = status === 'PASSED';
+            
+            // Extract parameters from the unrolled name if possible
+            const parameters = this.extractParametersFromUnrolledName(unrolledName);
+            
+            const result: TestIterationResult = {
+              index: results.length, // Use sequential index since we don't have iteration numbers
+              displayName: `${testName} > ${unrolledName}`,
+              parameters,
+              success,
+              duration: 0,
+              output: line.trim(),
+              errorInfo: success ? undefined : { error: `Test failed: ${unrolledName}` }
+            };
 
-        const result: TestIterationResult = {
-          index,
-          displayName: `${testName} [${parametersString}, #${index}]`,
-          parameters,
-          success,
-          duration,
-          output: line.trim(),
-          errorInfo: success ? undefined : { error: `Iteration ${index} ${status}` }
-        };
+            results.push(result);
+            this.logger.appendLine(`TestResultParser: Found unrolled test: ${unrolledName} - ${success ? 'PASSED' : 'FAILED'}`);
+          }
+        }
+      }
+    } else {
+      // For regular tests, use the existing logic
+      for (const line of lines) {
+        // Look for Gradle test iteration patterns like:
+        // "DataDrivenSpec > maximum of two numbers > maximum of two numbers [a: 1, b: 3, c: 3, #0] PASSED"
+        const iterationMatch = line.match(new RegExp(`^.*>\\s*${testName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*\\[([^\\]]+),\\s*#(\\d+)\\]\\s*(PASSED|FAILED|SKIPPED)`));
+        
+        if (iterationMatch) {
+          const parametersString = iterationMatch[1];
+          const index = parseInt(iterationMatch[2]);
+          const status = iterationMatch[3];
+          
+          // Parse parameters from the string like "a: 1, b: 3, c: 3"
+          const parameters = this.parseParameters(parametersString);
+          
+          // Determine success based on status
+          const success = status === 'PASSED';
+          
+          // Extract duration if available (not present in this format)
+          const duration = 0;
 
-        results.push(result);
-        this.logger.appendLine(`TestResultParser: Found iteration #${index}: ${success ? 'PASSED' : 'FAILED'}`);
+          const result: TestIterationResult = {
+            index,
+            displayName: `${testName} [${parametersString}, #${index}]`,
+            parameters,
+            success,
+            duration,
+            output: line.trim(),
+            errorInfo: success ? undefined : { error: `Iteration ${index} ${status}` }
+          };
+
+          results.push(result);
+          this.logger.appendLine(`TestResultParser: Found iteration #${index}: ${success ? 'PASSED' : 'FAILED'}`);
+        }
       }
     }
 
@@ -200,5 +237,35 @@ export class TestResultParser {
     const consoleResults = this.parseConsoleOutput(consoleOutput, testName);
     this.logger.appendLine(`TestResultParser: Using ${consoleResults.length} results from console output`);
     return consoleResults;
+  }
+
+  /**
+   * Extract parameters from unrolled test names like "maximum of 1 and 3 is 3"
+   * This is a best-effort attempt to extract meaningful data
+   */
+  private extractParametersFromUnrolledName(unrolledName: string): Record<string, any> {
+    const parameters: Record<string, any> = {};
+    
+    // Try to extract parameters from patterns like "maximum of 1 and 3 is 3"
+    const maxMatch = unrolledName.match(/^maximum of (\d+) and (\d+) is (\d+)$/);
+    if (maxMatch) {
+      parameters['a'] = parseInt(maxMatch[1]);
+      parameters['b'] = parseInt(maxMatch[2]);
+      parameters['c'] = parseInt(maxMatch[3]);
+    }
+    
+    // Try to extract name and age from patterns like "Alice is 25 years old"
+    const nameAgeMatch = unrolledName.match(/^([^0-9]+?)\s+is\s+(\d+)\s+years\s+old$/);
+    if (nameAgeMatch) {
+      parameters['name'] = nameAgeMatch[1].trim();
+      parameters['age'] = parseInt(nameAgeMatch[2]);
+    }
+    
+    // If no specific pattern matches, store the whole name as a parameter
+    if (Object.keys(parameters).length === 0) {
+      parameters['unrolledName'] = unrolledName;
+    }
+    
+    return parameters;
   }
 }

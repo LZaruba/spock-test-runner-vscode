@@ -1,6 +1,6 @@
-import * as vscode from 'vscode';
-import * as path from 'path';
 import { spawn } from 'child_process';
+import * as path from 'path';
+import * as vscode from 'vscode';
 import { TestExecutionOptions, TestResult } from '../types';
 import { BuildToolService } from './BuildToolService';
 import { DebugService } from './DebugService';
@@ -19,10 +19,10 @@ export class TestExecutionService {
       let timeoutId: NodeJS.Timeout | undefined;
       let processKilled = false;
       
-      const escapedTestName = `${options.className}.${options.testName}`;
+      const fullTestName = `${options.className}.${options.testName}`;
       
       const commandArgs = BuildToolService.buildCommandArgs(
-        escapedTestName, 
+        fullTestName, 
         options.debug, 
         options.workspacePath,
         this.logger
@@ -148,6 +148,7 @@ export class TestExecutionService {
       });
     });
   }
+
 
 
   private parseTestError(output: string): { error: string; location?: vscode.Location } | undefined {

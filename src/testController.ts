@@ -472,8 +472,18 @@ export class SpockTestController {
     const testName = parentTest.label;
     const className = this.testData.get(parentTest)?.className || 'Unknown';
     
-    // Sort iterations by index
-    const sortedResults = iterationResults.sort((a, b) => a.index - b.index);
+    // Sort iterations by index, with fallback to parameter-based sorting
+    const sortedResults = iterationResults.sort((a, b) => {
+      // First try to sort by index
+      if (a.index !== b.index) {
+        return a.index - b.index;
+      }
+      
+      // Fallback: sort by parameter values for consistent ordering
+      const aParams = Object.values(a.parameters).join(',');
+      const bParams = Object.values(b.parameters).join(',');
+      return aParams.localeCompare(bParams);
+    });
     
     for (const iteration of sortedResults) {
       // Create a flat test item with test name prepended
