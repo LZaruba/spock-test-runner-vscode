@@ -21,17 +21,19 @@ export class TestDiscoveryService {
 
       // Look for class definition
       if (this.CLASS_REGEX.test(trimmedLine)) {
-        const className = trimmedLine.match(this.CLASS_REGEX)?.[1];
+        const match = trimmedLine.match(this.CLASS_REGEX);
+        const className = match?.[1];
+        const isAbstract = trimmedLine.startsWith('abstract');
         if (className) {
           currentClass = {
             name: className,
             line: i,
             range: new vscode.Range(i, 0, i, line.length),
-            methods: []
+            methods: [],
+            isAbstract: isAbstract
           };
           testClasses.push(currentClass);
           inClass = true;
-          
           const delta = this.countBraceDelta(line);
           if (delta > 0) {
             seenClassOpeningBrace = true;
@@ -51,10 +53,14 @@ export class TestDiscoveryService {
           const braceOk = hasBraceSameLine || this.hasOpeningBraceOnOrNextLine(lines, i);
 
           if (shouldAccept && braceOk) {
+            // Check if this is a data-driven test by looking for 'where' block
+            const isDataDriven = this.hasWhereBlock(lines, i);
+            
             const testMethod: SpockTestMethod = {
               name: rawName,
               line: i,
-              range: new vscode.Range(i, 0, i, line.length)
+              range: new vscode.Range(i, 0, i, line.length),
+              isDataDriven: isDataDriven
             };
             currentClass.methods.push(testMethod);
           }
@@ -114,5 +120,35 @@ export class TestDiscoveryService {
     const open = (text.match(/\{/g) || []).length;
     const close = (text.match(/\}/g) || []).length;
     return open - close;
+  }
+
+  private static hasWhereBlock(lines: string[], startIndex: number): boolean {
+    let braceBalance = 0;
+    let foundOpeningBrace = false;
+    
+    for (let j = startIndex; j < lines.length; j++) {
+      const line = lines[j];
+      const trimmedLine = line.trim();
+      
+      // Count braces to track method boundaries
+      const delta = this.countBraceDelta(line);
+      braceBalance += delta;
+      
+      if (delta > 0) {
+        foundOpeningBrace = true;
+      }
+      
+      // If we've found the opening brace and now we're back to 0, we've reached the end of the method
+      if (foundOpeningBrace && braceBalance <= 0) {
+        break;
+      }
+      
+      // Look for 'where:' block
+      if (this.BLOCK_LABEL_REGEX.test(trimmedLine) && trimmedLine.includes('where')) {
+        return true;
+      }
+    }
+    
+    return false;
   }
 }

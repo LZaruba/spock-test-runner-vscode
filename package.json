@@ -44,6 +44,11 @@
       {
         "command": "spock-test-runner-vscode.debugSpecificTest",
         "title": "Debug This Test"
+      },
+      {
+        "command": "spock-test-runner.reloadTests",
+        "title": "Reload Spock Tests",
+        "category": "Spock Test Runner"
       }
     ],
     "menus": {
@@ -65,8 +70,16 @@
     "languages": [
       {
         "id": "groovy",
-        "aliases": ["Groovy", "groovy"],
-        "extensions": [".groovy", ".gvy", ".gy", ".gsh"],
+        "aliases": [
+          "Groovy",
+          "groovy"
+        ],
+        "extensions": [
+          ".groovy",
+          ".gvy",
+          ".gy",
+          ".gsh"
+        ],
         "configuration": "./language-configuration.json"
       }
     ],
@@ -83,15 +96,30 @@
     "watch": "tsc -watch -p ./",
     "pretest": "npm run compile && npm run lint",
     "lint": "eslint src --ext ts",
-    "test": "node ./out/test/runTest.js"
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "test:ci": "jest --ci --coverage --watchAll=false",
+    "test:unit": "jest --testPathPatterns='TestResultParser|TestController'",
+    "test:integration": "jest --testPathPatterns='ParameterizedTestIntegration'",
+    "test:performance": "jest --testPathPatterns='ParameterizedTestPerformance'",
+    "test:parameterized": "jest --testPathPatterns='ParameterizedTest|TestResultParser'",
+    "test:e2e": "jest --testPathPatterns='E2E' --testTimeout=60000",
+    "test:all": "npm run test:unit && npm run test:integration && npm run test:performance && npm run test:parameterized",
+    "package": "vsce package",
+    "run-vscode": "./run-vscode.sh"
   },
   "devDependencies": {
+    "@types/jest": "^30.0.0",
     "@types/mocha": "^10.0.10",
     "@types/node": "^18.x",
     "@types/vscode": "^1.85.0",
     "@typescript-eslint/eslint-plugin": "^6.0.0",
     "@typescript-eslint/parser": "^6.0.0",
     "eslint": "^8.0.0",
-    "typescript": "^5.3.3"
+    "jest": "^30.2.0",
+    "ts-jest": "^29.4.4",
+    "typescript": "^5.3.3",
+    "vsce": "^2.15.0"
   }
 }

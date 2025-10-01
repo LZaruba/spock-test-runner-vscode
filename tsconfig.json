@@ -12,10 +12,13 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "types": ["node", "vscode"]
+    "types": ["node", "vscode", "jest"]
   },
   "exclude": [
     "node_modules",
     ".vscode-test"
+  ],
+  "include": [
+    "src/**/*"
   ]
 }
