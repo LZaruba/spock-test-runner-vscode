@@ -4,6 +4,43 @@ All notable changes to the "spock-test-runner-vscode" extension will be document
 
 **Author**: Lukas Zaruba
 
+## [0.0.3] - 2025-10-01
+
+### Added
+- **Parameterized Test Support**: Full support for Spock data-driven tests with `where` blocks
+- **Individual Iteration Results**: Each test iteration is displayed as a separate test item in the Test Explorer
+- **Smart Test Result Parsing**: Automatic parsing of console output and XML reports to extract iteration-specific results
+- **Test Result Parser Service**: Dedicated service for parsing Gradle test output and extracting detailed iteration information
+- **Iteration Navigation**: Clicking on individual iterations navigates to the specific line in the `where` block
+- **Comprehensive E2E Testing**: Real Gradle execution tests to validate functionality with actual test output
+
+### Enhanced
+- **Test Discovery**: Improved detection of data-driven tests with `where` blocks
+- **Test Execution**: Better handling of Spock test names with placeholders (e.g., `#person.name is #person.age years old`)
+- **Result Ordering**: Parameterized test iterations are displayed in the correct order matching the `where` block
+- **File Change Handling**: Proper cleanup of old iteration items when test structure changes
+- **Test Reload**: Automatic refresh of test structure when files are modified
+
+### Fixed
+- **Abstract Class Handling**: Abstract test classes are no longer displayed in the Test Explorer
+- **Duplicate Test Listings**: Eliminated duplicate test class entries in the Test Explorer
+- **Test Name Escaping**: Proper handling of Spock test names with special characters and placeholders
+- **Iteration Cleanup**: Old iteration items are properly cleaned up when files change
+- **Test Execution**: Fixed "No tests found" errors for tests with placeholder names
+
+### Technical Improvements
+- **TestResultParser**: New service for parsing Gradle console output and XML reports
+- **Iteration Tracking**: Proper tracking and cleanup of dynamically created test iteration items
+- **Enhanced Logging**: Better debugging information for test discovery and execution
+- **Robust Error Handling**: Improved error handling for test parsing and execution failures
+
+### Supported Test Patterns
+- **Data Tables**: `where:` blocks with pipe (`|`) and semicolon (`;`) separators
+- **Data Pipes**: `where:` blocks with `<<` operators for lists and maps
+- **Placeholder Names**: Test methods with `#` placeholders in names (e.g., `def "#person.name is #person.age years old"()`)
+- **Mixed Separators**: Complex `where:` blocks with multiple data sources
+- **Custom Unroll Patterns**: Tests with `@Unroll` annotations and custom naming patterns
+
 ## [0.0.2] - 2025-09-22
 
 ### Changed

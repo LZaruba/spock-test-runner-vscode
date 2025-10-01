@@ -57,7 +57,8 @@ describe('TestResultParser', () => {
         parameters: { roll1: 0, roll2: 0, expectedScore: 0 },
         success: false,
         duration: 0,
-        output: 'com.example.DataDrivenSpec > should calculate score for regular frames [roll1: 0, roll2: 0, expectedScore: 0, #2] FAILED'
+        output: 'com.example.DataDrivenSpec > should calculate score for regular frames [roll1: 0, roll2: 0, expectedScore: 0, #2] FAILED',
+        errorInfo: { error: 'Iteration 2 FAILED' }
       });
     });
 
