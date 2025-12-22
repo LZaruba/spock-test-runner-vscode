@@ -2,7 +2,7 @@
   "name": "spock-test-runner-vscode",
   "displayName": "Spock Test Runner",
   "description": "Test runner for Spock Groovy tests in Java projects with VS Code Test API integration",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "copyright": "Copyright 2025 Lukas Zaruba",
   "publisher": "LZaruba",
   "author": "Lukas Zaruba",
