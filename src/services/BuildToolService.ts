@@ -32,14 +32,18 @@ export class BuildToolService {
   }
 
   static buildCommandArgs(
-    testName: string, 
-    debug: boolean, 
+    testName: string,
+    debug: boolean,
     workspacePath?: string,
     logger?: vscode.OutputChannel
   ): string[] {
     const escapedTestName = testName;
-    
-    const gradleCommand = (workspacePath && this.hasGradleWrapper(workspacePath)) ? './gradlew' : 'gradle';
+
+    // Use full path to gradle wrapper to avoid spawn issues on Windows
+    // spawn() without shell:true doesn't resolve relative paths or .bat extensions
+    const wrapperName = process.platform === 'win32' ? 'gradlew.bat' : 'gradlew';
+    const hasWrapper = workspacePath && this.hasGradleWrapper(workspacePath);
+    const gradleCommand = hasWrapper ? path.join(workspacePath, wrapperName) : 'gradle';
     const baseArgs = [gradleCommand, 'test', '--tests', escapedTestName];
     
     // Use init script to force test execution
@@ -71,6 +75,7 @@ export class BuildToolService {
   }
 
   static hasGradleWrapper(workspacePath: string): boolean {
-    return fs.existsSync(path.join(workspacePath, 'gradlew'));
+    const wrapperName = process.platform === 'win32' ? 'gradlew.bat' : 'gradlew';
+    return fs.existsSync(path.join(workspacePath, wrapperName));
   }
 }

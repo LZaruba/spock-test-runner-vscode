@@ -586,7 +586,7 @@ export class SpockTestController {
       // Find the test method line
       for (let i = 0; i < lines.length; i++) {
         const line = lines[i];
-        if (line.includes(`def "${testName}"`) || line.includes(`def ${testName}`)) {
+        if (line.includes(`def "${testName}"`) || line.includes(`def ${testName}`) || line.includes(`void "${testName}"`) || line.includes(`void ${testName}`)) {
           testMethodLine = i;
           break;
         }

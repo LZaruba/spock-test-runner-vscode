@@ -43,6 +43,24 @@ class BowlingGameSpec extends Specification {
         0    || 0
     }
 
+    // 3. Data table with double pipe separator (input vs output)
+    void "void - should handle strikes correctly"(int pins, int expectedScore) {
+        given:
+        BowlingGame game = new BowlingGame()
+
+        when:
+        game.roll(pins)
+
+        then:
+        game.score() == expectedScore
+
+        where:
+        pins || expectedScore
+        10   || 10
+        5    || 5
+        0    || 0
+    }
+
     // 3. Data table with semicolon separators
     def "should handle spares correctly"(int roll1, int roll2, int nextRoll, int expectedScore) {
         given:
