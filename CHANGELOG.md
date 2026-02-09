@@ -4,6 +4,14 @@ All notable changes to the "spock-test-runner-vscode" extension will be document
 
 **Author**: Lukas Zaruba
 
+## [0.0.4] - 2025-10-01
+
+### Added
+- **Maven Support**: Initial support for Maven build tool alongside Gradle
+- **Maven Sample Project**: Added a sample Maven project in the `samples/maven-sample` directory
+- **Build Tool Detection**: Automatic detection of build tool (Gradle or Maven) based on project files
+- **Maven Test Execution**: Ability to run and debug Spock tests using Maven commands
+
 ## [0.0.3] - 2025-10-01
 
 ### Added

@@ -2,7 +2,7 @@
 
 A VS Code extension that provides comprehensive test support for the Spock testing framework in Java projects. This extension integrates with VS Code's Test API to provide seamless test discovery, execution, and debugging capabilities for Spock tests.
 
-**Version**: 0.0.2  
+**Version**: 0.0.4 
 **Author**: Lukas Zaruba
 
 > **Inspiration**: This extension was inspired by [Daniel Micah's spock-test-runner](https://github.com/donnffd/spock-test-runner) but focuses exclusively on VS Code's Test API integration rather than CodeLens functionality.
@@ -12,7 +12,7 @@ A VS Code extension that provides comprehensive test support for the Spock testi
 - **Test Discovery**: Automatically discovers Spock test classes and methods in your workspace
 - **Test Execution**: Run individual tests, test classes, or all tests through VS Code's Test Explorer
 - **Debug Support**: Debug Spock tests with full breakpoint support and variable inspection
-- **Build Tool Support**: Works with Gradle projects
+- **Build Tool Support**: Works with both Gradle and Maven projects
 - **Real-time Updates**: Automatically updates test tree when files change
 - **Error Reporting**: Detailed error messages with file locations for failed tests
 - **Output Streaming**: Real-time test output in VS Code's Test Results panel
@@ -21,7 +21,7 @@ A VS Code extension that provides comprehensive test support for the Spock testi
 
 - VS Code 1.85.0 or higher
 - Java 11 or higher
-- Gradle build tool
+- Gradle or Maven build tool
 - Spock framework in your project
 
 ## Installation
@@ -88,7 +88,7 @@ class MySpec extends Specification {
 
 ### Build Tool Detection
 The extension automatically detects your build tool:
-- **Gradle**: Looks for `build.gradle` file
+- **Gradle**: Looks for `build.gradle` file (preferred if both are present)
 - **Maven**: Looks for `pom.xml` file
 
 ### Debug Configuration
@@ -110,16 +110,16 @@ The extension automatically creates debug configurations for your project. You c
 }
 ```
 
-## Sample Project
+## Sample Projects
 
-A sample Gradle project with Spock tests is included in the `sample-project` directory. This project demonstrates:
+A sample Gradle project with Spock tests is included in the `sample-projects/gradle-sample` directory. This project demonstrates:
 - Basic arithmetic operations testing
 - User service testing with CRUD operations
 - Error handling and exception testing
 - Multiple test scenarios
 
 To test the extension:
-1. Open the `sample-project` folder in VS Code
+1. Open the `sample-projects/gradle-sample` folder in VS Code
 2. Install the Spock Test Runner extension
 3. Open the Test Explorer to see discovered tests
 4. Run or debug the tests
@@ -139,9 +139,10 @@ To test the extension:
 - Check the Output panel for debug-related error messages
 
 ### Build Tool Issues
-- Ensure `gradlew` or `gradle` command is available in your PATH
-- For Maven, ensure `mvn` command is available in your PATH
-- Check that your build files are valid
+- For Gradle: Ensure `gradlew` (wrapper) or `gradle` is available in your PATH
+- For Maven: Ensure `mvnw` (wrapper) or `mvn` is available in your PATH
+- Check that your build files are valid and properly configured
+- If both `build.gradle` and `pom.xml` exist, Gradle will be used (configure one build tool per project)
 
 ## Development
 
@@ -184,3 +185,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - [Spock Framework](https://spockframework.org/) - The testing framework this extension supports
 - [VS Code Test API](https://code.visualstudio.com/api/extension-guides/testing) - The testing API this extension uses
 - [Gradle](https://gradle.org/) - Build tool supported by this extension
+- [Maven](https://maven.apache.org/) - Build tool supported by this extension

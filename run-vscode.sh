@@ -2,12 +2,26 @@
 
 # Script to launch VS Code with the Spock Test Runner extension loaded
 # and the sample project opened
+# Usage: ./run-vscode.sh [gradle|maven]
 
 echo "🚀 Starting VS Code with Spock Test Runner extension..."
 
 # Get the directory where this script is located
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-SAMPLE_PROJECT_DIR="$SCRIPT_DIR/sample-project"
+SAMPLE_PROJECTS_DIR="$SCRIPT_DIR/sample-projects"
+
+# Determine which project to open (default to gradle)
+PROJECT_TYPE="${1:-gradle}"
+
+if [ "$PROJECT_TYPE" = "maven" ]; then
+    SAMPLE_PROJECT_DIR="$SAMPLE_PROJECTS_DIR/maven-project"
+elif [ "$PROJECT_TYPE" = "gradle" ]; then
+    SAMPLE_PROJECT_DIR="$SAMPLE_PROJECTS_DIR/gradle-project"
+else
+    echo "❌ Invalid project type: $PROJECT_TYPE"
+    echo "Usage: ./run-vscode.sh [gradle|maven]"
+    exit 1
+fi
 
 # Check if VS Code is installed
 if ! command -v code &> /dev/null; then

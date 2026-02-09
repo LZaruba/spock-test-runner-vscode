@@ -26,7 +26,7 @@ export interface TestResult {
   iterationResults?: TestIterationResult[];
 }
 
-export type BuildTool = 'gradle';
+export type BuildTool = 'gradle' | 'maven';
 
 export interface TestExecutionOptions {
   className: string;
