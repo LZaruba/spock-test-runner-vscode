@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+<meta http-equiv="x-ua-compatible" content="IE=edge"/>
+<title>Test results - BowlingGameSpec</title>
+<link href="../css/base-style.css" rel="stylesheet" type="text/css"/>
+<link href="../css/style.css" rel="stylesheet" type="text/css"/>
+<script src="../js/report.js" type="text/javascript"></script>
+</head>
+<body>
+<div id="content">
+<h1>BowlingGameSpec</h1>
+<div class="breadcrumbs">
+<a href="../index.html">all</a> &gt; 
+<a href="../packages/com.example.html">com.example</a> &gt; BowlingGameSpec</div>
+<div id="summary">
+<table>
+<tr>
+<td>
+<div class="summaryGroup">
+<table>
+<tr>
+<td>
+<div class="infoBox" id="tests">
+<div class="counter">67</div>
+<p>tests</p>
+</div>
+</td>
+<td>
+<div class="infoBox" id="failures">
+<div class="counter">18</div>
+<p>failures</p>
+</div>
+</td>
+<td>
+<div class="infoBox" id="ignored">
+<div class="counter">0</div>
+<p>ignored</p>
+</div>
+</td>
+<td>
+<div class="infoBox" id="duration">
+<div class="counter">0.151s</div>
+<p>duration</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+</td>
+<td>
+<div class="infoBox failures" id="successRate">
+<div class="percent">73%</div>
+<p>successful</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<div id="tabs">
+<ul class="tabLinks">
+<li>
+<a href="#tab0">Failed tests</a>
+</li>
+<li>
+<a href="#tab1">Tests</a>
+</li>
+</ul>
+<div id="tab0" class="tab">
+<h2>Failed tests</h2>
+<div class="test">
+<a name="perfect game should have score 300"></a>
+<h3 class="failures">perfect game should have score 300</h3>
+<span class="code">
+<pre>java.lang.IllegalArgumentException: Cannot knock down more pins than available
+	at com.example.Frame.addRoll(Frame.java:26)
+	at com.example.BowlingGame.roll(BowlingGame.java:32)
+	at com.example.BowlingGameSpec.#gameState should have score #expectedScore_closure1(BowlingGameSpec.groovy:152)
+	at groovy.lang.Closure.call(Closure.java:433)
+	at groovy.lang.Closure.call(Closure.java:422)
+	at com.example.BowlingGameSpec.#gameState should have score #expectedScore(BowlingGameSpec.groovy:152)
+</pre>
+</span>
+</div>
+<div class="test">
+<a name="should calculate complex scoring [scenario: mixed, rolls: [3, 4, 10, 5, 5, 2, 3, 0, 0, 0, 0, 0], expectedScore: 42, #2]"></a>
+<h3 class="failures">should calculate complex scoring [scenario: mixed, rolls: [3, 4, 10, 5, 5, 2, 3, 0, 0, 0, 0, 0], expectedScore: 42, #2]</h3>
+<span class="code">
+<pre>Condition not satisfied:
+
+game.score() == expectedScore
+|    |       |  |
+|    44      |  42
+|            false
+&lt;com.example.BowlingGame@4463d9d3 frames=[[3, 4], [X], [5, /], [2, 3], [0, 0], [0, 0], [0], [], [], []] currentFrame=6 currentRoll=1&gt;
+
+	at com.example.BowlingGameSpec.should calculate complex scoring(BowlingGameSpec.groovy:245)
+</pre>
+</span>
+</div>
+<div class="test">
+<a name="should calculate complex scoring [scenario: perfect, rolls: [10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10], expectedScore: 300, #0]"></a>
+<h3 class="failures">should calculate complex scoring [scenario: perfect, rolls: [10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10], expectedScore: 300, #0]</h3>
+<span class="code">
+<pre>java.lang.IllegalArgumentException: Cannot knock down more pins than available
+	at com.example.Frame.addRoll(Frame.java:26)
+	at com.example.BowlingGame.roll(BowlingGame.java:32)
+	at com.example.BowlingGameSpec.should calculate complex scoring_closure2(BowlingGameSpec.groovy:242)
+	at groovy.lang.Closure.call(Closure.java:433)
+	at groovy.lang.Closure.call(Closure.java:422)
+	at com.example.BowlingGameSpec.should calculate complex scoring(BowlingGameSpec.groovy:242)
+</pre>
+</span>
+</div>
+<div class="test">
+<a name="should calculate complex scoring [scenario: spares, rolls: [5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5], expectedScore: 150, #3]"></a>
+<h3 class="failures">should calculate complex scoring [scenario: spares, rolls: [5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5], expectedScore: 150, #3]</h3>
+<span class="code">
+<pre>Condition not satisfied:
+
+game.score() == expectedScore
+|    |       |  |
+|    85      |  150
+|            false
+&lt;com.example.BowlingGame@4fe01803 frames=[[5, /], [5, /], [5, /], [5, /], [5, /], [5, /], [], [], [], []] currentFrame=6 currentRoll=0&gt;
+
+	at com.example.BowlingGameSpec.should calculate complex scoring(BowlingGameSpec.groovy:245)
+</pre>
+</span>
+</div>
+<div class="test">
+<a name="should handle consecutive strikes [strikeCount: 11, #10]"></a>
+<h3 class="failures">should handle consecutive strikes [strikeCount: 11, #10]</h3>
+<span class="code">
+<pre>java.lang.IllegalArgumentException: Cannot knock down more pins than available
+	at com.example.Frame.addRoll(Frame.java:26)
+	at com.example.BowlingGame.roll(BowlingGame.java:32)
+	at com.example.BowlingGameSpec.should handle consecutive strikes(BowlingGameSpec.groovy:226)
+</pre>
+</span>
+</div>
+<div class="test">
+<a name="should handle consecutive strikes [strikeCount: 12, #11]"></a>
+<h3 class="failures">should handle consecutive strikes [strikeCount: 12, #11]</h3>
+<span class="code">
+<pre>java.lang.IllegalArgumentException: Cannot knock down more pins than available
+	at com.example.Frame.addRoll(Frame.java:26)
+	at com.example.BowlingGame.roll(BowlingGame.java:32)
+	at com.example.BowlingGameSpec.should handle consecutive strikes(BowlingGameSpec.groovy:226)
+</pre>
+</span>
+</div>
+<div class="test">
+<a name="should handle last frame scenarios [roll1: 10, roll2: 5, roll3: 5, expectedScore: 87, #0]"></a>
+<h3 class="failures">should handle last frame scenarios [roll1: 10, roll2: 5, roll3: 5, expectedScore: 87, #0]</h3>
+<span class="code">
+<pre>java.lang.IllegalArgumentException: Cannot knock down more pins than available
+	at com.example.Frame.addRoll(Frame.java:26)
+	at com.example.BowlingGame.roll(BowlingGame.java:32)
+	at com.example.BowlingGameSpec.should handle last frame scenarios(BowlingGameSpec.groovy:272)
+</pre>
+</span>
+</div>
+<div class="test">
+<a name="should handle last frame scenarios [roll1: 3, roll2: 4, roll3: -1, expectedScore: 85, #2]"></a>
+<h3 class="failures">should handle last frame scenarios [roll1: 3, roll2: 4, roll3: -1, expectedScore: 85, #2]</h3>
+<span class="code">
+<pre>Condition not satisfied:
+
+game.score() == expectedScore
+|    |       |  |
+|    70      |  85
+|            false
+&lt;com.example.BowlingGame@312afbc7 frames=[[3, 4], [3, 4], [3, 4], [3, 4], [3, 4], [3, 4], [3, 4], [3, 4], [3, 4], [3, 4]] currentFrame=9 currentRoll=2&gt;
+
+	at com.example.BowlingGameSpec.should handle last frame scenarios(BowlingGameSpec.groovy:276)
+</pre>
+</span>
+</div>
+<div class="test">
+<a name="should handle last frame scenarios [roll1: 5, roll2: 5, roll3: 5, expectedScore: 87, #1]"></a>
+<h3 class="failures">should handle last frame scenarios [roll1: 5, roll2: 5, roll3: 5, expectedScore: 87, #1]</h3>
+<span class="code">
+<pre>java.lang.IllegalArgumentException: Cannot knock down more pins than available
+	at com.example.Frame.addRoll(Frame.java:26)
+	at com.example.BowlingGame.roll(BowlingGame.java:32)
+	at com.example.BowlingGameSpec.should handle last frame scenarios(BowlingGameSpec.groovy:273)
+</pre>
+</span>
+</div>
+<div class="test">
+<a name="should handle spares correctly [roll1: 5, roll2: 5, nextRoll: 3, expectedScore: 18, #0]"></a>
+<h3 class="failures">should handle spares correctly [roll1: 5, roll2: 5, nextRoll: 3, expectedScore: 18, #0]</h3>
+<span class="code">
+<pre>Condition not satisfied:
+
+game.score() == expectedScore
+|    |       |  |
+|    16      |  18
+|            false
+&lt;com.example.BowlingGame@22d6cac2 frames=[[5, /], [3], [], [], [], [], [], [], [], []] currentFrame=1 currentRoll=1&gt;
+
+	at com.example.BowlingGameSpec.should handle spares correctly(BowlingGameSpec.groovy:75)
+</pre>
+</span>
+</div>
+<div class="test">
+<a name="should handle spares correctly [roll1: 9, roll2: 1, nextRoll: 2, expectedScore: 18, #2]"></a>
+<h3 class="failures">should handle spares correctly [roll1: 9, roll2: 1, nextRoll: 2, expectedScore: 18, #2]</h3>
+<span class="code">
+<pre>Condition not satisfied:
+
+game.score() == expectedScore
+|    |       |  |
+|    14      |  18
+|            false
+&lt;com.example.BowlingGame@3163987e frames=[[9, /], [2], [], [], [], [], [], [], [], []] currentFrame=1 currentRoll=1&gt;
+
+	at com.example.BowlingGameSpec.should handle spares correctly(BowlingGameSpec.groovy:75)
+</pre>
+</span>
+</div>
+<div class="test">
+<a name="should handle strikes correctly [pins: 10, expectedScore: 10, #0]"></a>
+<h3 class="failures">should handle strikes correctly [pins: 10, expectedScore: 10, #0]</h3>
+<span class="code">
+<pre>Condition failed with Exception:
+
+game.score() == expectedScore
+|    |
+|    java.lang.IndexOutOfBoundsException: Index 0 out of bounds for length 0
+|    	at java.base/jdk.internal.util.Preconditions.outOfBounds(Preconditions.java:100)
+|    	at java.base/jdk.internal.util.Preconditions.outOfBoundsCheckIndex(Preconditions.java:106)
+|    	at java.base/jdk.internal.util.Preconditions.checkIndex(Preconditions.java:302)
+|    	at java.base/java.util.Objects.checkIndex(Objects.java:385)
+|    	at java.base/java.util.ArrayList.get(ArrayList.java:427)
+|    	at com.example.BowlingGame.getStrikeBonus(BowlingGame.java:97)
+|    	at com.example.BowlingGame.score(BowlingGame.java:57)
+|    	at com.example.BowlingGameSpec.should handle strikes correctly(BowlingGameSpec.groovy:37)
+&lt;com.example.BowlingGame@2d691f3d frames=[[X], [], [], [], [], [], [], [], [], []] currentFrame=1 currentRoll=0&gt;
+
+	at com.example.BowlingGameSpec.should handle strikes correctly(BowlingGameSpec.groovy:37)
+Caused by: java.lang.IndexOutOfBoundsException: Index 0 out of bounds for length 0
+	at java.base/jdk.internal.util.Preconditions.outOfBounds(Preconditions.java:100)
+	at java.base/jdk.internal.util.Preconditions.outOfBoundsCheckIndex(Preconditions.java:106)
+	at java.base/jdk.internal.util.Preconditions.checkIndex(Preconditions.java:302)
+	at java.base/java.util.Objects.checkIndex(Objects.java:385)
+	at java.base/java.util.ArrayList.get(ArrayList.java:427)
+	at com.example.BowlingGame.getStrikeBonus(BowlingGame.java:97)
+	at com.example.BowlingGame.score(BowlingGame.java:57)
+	... 1 more
+</pre>
+</span>
+</div>
+<div class="test">
+<a name="should validate game state transitions [currentFrame: 10, currentRoll: 2, gameOver: true, #3]"></a>
+<h3 class="failures">should validate game state transitions [currentFrame: 10, currentRoll: 2, gameOver: true, #3]</h3>
+<span class="code">
+<pre>Condition not satisfied:
+
+game.isGameOver() == gameOver
+|    |            |  |
+|    false        |  true
+|                 false
+&lt;com.example.BowlingGame@3e134896 frames=[[3, 4], [3, 4], [3, 4], [3, 4], [3, 4], [3, 4], [3, 4], [3, 4], [3, 4], [3]] currentFrame=9 currentRoll=1&gt;
+
+	at com.example.BowlingGameSpec.should validate game state transitions(BowlingGameSpec.groovy:324)
+</pre>
+</span>
+</div>
+<div class="test">
+<a name="spare game should have score 150"></a>
+<h3 class="failures">spare game should have score 150</h3>
+<span class="code">
+<pre>Condition not satisfied:
+
+game.score() == expectedScore
+|    |       |  |
+|    85      |  150
+|            false
+&lt;com.example.BowlingGame@31611954 frames=[[5, /], [5, /], [5, /], [5, /], [5, /], [5, /], [], [], [], []] currentFrame=6 currentRoll=0&gt;
+
+	at com.example.BowlingGameSpec.#gameState should have score #expectedScore(BowlingGameSpec.groovy:155)
+</pre>
+</span>
+</div>
+<div class="test">
+<a name="strike in frame 1 should give bonus points"></a>
+<h3 class="failures">strike in frame 1 should give bonus points</h3>
+<span class="code">
+<pre>Condition not satisfied:
+
+game.score() == 10 + expectedBonus
+|    |       |     | |
+|    24      false | 7
+|                  17
+&lt;com.example.BowlingGame@673bb956 frames=[[X], [3, 4], [], [], [], [], [], [], [], []] currentFrame=2 currentRoll=0&gt;
+
+	at com.example.BowlingGameSpec.strike in frame #frame should give bonus points(BowlingGameSpec.groovy:137)
+</pre>
+</span>
+</div>
+<div class="test">
+<a name="strike in frame 2 should give bonus points"></a>
+<h3 class="failures">strike in frame 2 should give bonus points</h3>
+<span class="code">
+<pre>Condition not satisfied:
+
+game.score() == 10 + expectedBonus
+|    |       |     | |
+|    47      false | 7
+|                  17
+&lt;com.example.BowlingGame@654c1a54 frames=[[X], [X], [3, 4], [], [], [], [], [], [], []] currentFrame=3 currentRoll=0&gt;
+
+	at com.example.BowlingGameSpec.strike in frame #frame should give bonus points(BowlingGameSpec.groovy:137)
+</pre>
+</span>
+</div>
+<div class="test">
+<a name="strike in frame 3 should give bonus points"></a>
+<h3 class="failures">strike in frame 3 should give bonus points</h3>
+<span class="code">
+<pre>Condition not satisfied:
+
+game.score() == 10 + expectedBonus
+|    |       |     | |
+|    77      false | 7
+|                  17
+&lt;com.example.BowlingGame@19f21b6b frames=[[X], [X], [X], [3, 4], [], [], [], [], [], []] currentFrame=4 currentRoll=0&gt;
+
+	at com.example.BowlingGameSpec.strike in frame #frame should give bonus points(BowlingGameSpec.groovy:137)
+</pre>
+</span>
+</div>
+<div class="test">
+<a name="void - should handle strikes correctly [pins: 10, expectedScore: 10, #0]"></a>
+<h3 class="failures">void - should handle strikes correctly [pins: 10, expectedScore: 10, #0]</h3>
+<span class="code">
+<pre>Condition failed with Exception:
+
+game.score() == expectedScore
+|    |
+|    java.lang.IndexOutOfBoundsException: Index 0 out of bounds for length 0
+|    	at java.base/jdk.internal.util.Preconditions.outOfBounds(Preconditions.java:100)
+|    	at java.base/jdk.internal.util.Preconditions.outOfBoundsCheckIndex(Preconditions.java:106)
+|    	at java.base/jdk.internal.util.Preconditions.checkIndex(Preconditions.java:302)
+|    	at java.base/java.util.Objects.checkIndex(Objects.java:385)
+|    	at java.base/java.util.ArrayList.get(ArrayList.java:427)
+|    	at com.example.BowlingGame.getStrikeBonus(BowlingGame.java:97)
+|    	at com.example.BowlingGame.score(BowlingGame.java:57)
+|    	at com.example.BowlingGameSpec.void - should handle strikes correctly(BowlingGameSpec.groovy:55)
+&lt;com.example.BowlingGame@4aa3d36 frames=[[X], [], [], [], [], [], [], [], [], []] currentFrame=1 currentRoll=0&gt;
+
+	at com.example.BowlingGameSpec.void - should handle strikes correctly(BowlingGameSpec.groovy:55)
+Caused by: java.lang.IndexOutOfBoundsException: Index 0 out of bounds for length 0
+	at java.base/jdk.internal.util.Preconditions.outOfBounds(Preconditions.java:100)
+	at java.base/jdk.internal.util.Preconditions.outOfBoundsCheckIndex(Preconditions.java:106)
+	at java.base/jdk.internal.util.Preconditions.checkIndex(Preconditions.java:302)
+	at java.base/java.util.Objects.checkIndex(Objects.java:385)
+	at java.base/java.util.ArrayList.get(ArrayList.java:427)
+	at com.example.BowlingGame.getStrikeBonus(BowlingGame.java:97)
+	at com.example.BowlingGame.score(BowlingGame.java:57)
+	... 1 more
+</pre>
+</span>
+</div>
+</div>
+<div id="tab1" class="tab">
+<h2>Tests</h2>
+<table>
+<thead>
+<tr>
+<th>Test</th>
+<th>Duration</th>
+<th>Result</th>
+</tr>
+</thead>
+<tr>
+<td class="success">frame scoring test[0] - Frame 1: 3, 4 = 7</td>
+<td class="success">0.002s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">frame scoring test[1] - Frame 2: 5, 5 = 10</td>
+<td class="success">0s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">frame scoring test[2] - Frame 3: 10, 0 = 10</td>
+<td class="success">0s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">gutter game should have score 0</td>
+<td class="success">0.001s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="failures">perfect game should have score 300</td>
+<td class="failures">0.007s</td>
+<td class="failures">failed</td>
+</tr>
+<tr>
+<td class="success">should calculate complex scoring [scenario: gutter, rolls: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], expectedScore: 0, #1]</td>
+<td class="success">0.001s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="failures">should calculate complex scoring [scenario: mixed, rolls: [3, 4, 10, 5, 5, 2, 3, 0, 0, 0, 0, 0], expectedScore: 42, #2]</td>
+<td class="failures">0.001s</td>
+<td class="failures">failed</td>
+</tr>
+<tr>
+<td class="failures">should calculate complex scoring [scenario: perfect, rolls: [10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10], expectedScore: 300, #0]</td>
+<td class="failures">0.001s</td>
+<td class="failures">failed</td>
+</tr>
+<tr>
+<td class="failures">should calculate complex scoring [scenario: spares, rolls: [5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5], expectedScore: 150, #3]</td>
+<td class="failures">0s</td>
+<td class="failures">failed</td>
+</tr>
+<tr>
+<td class="success">should calculate score for regular frames [roll1: 0, roll2: 0, expectedScore: 0, #2]</td>
+<td class="success">0s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">should calculate score for regular frames [roll1: 3, roll2: 4, expectedScore: 7, #0]</td>
+<td class="success">0.011s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">should calculate score for regular frames [roll1: 5, roll2: 2, expectedScore: 7, #1]</td>
+<td class="success">0.001s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">should calculate score for regular frames [roll1: 9, roll2: 1, expectedScore: 10, #3]</td>
+<td class="success">0s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">should handle consecutive strikes [strikeCount: 1, #0]</td>
+<td class="success">0.002s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">should handle consecutive strikes [strikeCount: 10, #9]</td>
+<td class="success">0s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="failures">should handle consecutive strikes [strikeCount: 11, #10]</td>
+<td class="failures">0s</td>
+<td class="failures">failed</td>
+</tr>
+<tr>
+<td class="failures">should handle consecutive strikes [strikeCount: 12, #11]</td>
+<td class="failures">0s</td>
+<td class="failures">failed</td>
+</tr>
+<tr>
+<td class="success">should handle consecutive strikes [strikeCount: 2, #1]</td>
+<td class="success">0s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">should handle consecutive strikes [strikeCount: 3, #2]</td>
+<td class="success">0s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">should handle consecutive strikes [strikeCount: 4, #3]</td>
+<td class="success">0s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">should handle consecutive strikes [strikeCount: 5, #4]</td>
+<td class="success">0s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">should handle consecutive strikes [strikeCount: 6, #5]</td>
+<td class="success">0s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">should handle consecutive strikes [strikeCount: 7, #6]</td>
+<td class="success">0.001s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">should handle consecutive strikes [strikeCount: 8, #7]</td>
+<td class="success">0s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">should handle consecutive strikes [strikeCount: 9, #8]</td>
+<td class="success">0s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">should handle edge cases - invalid rolls [pins: -1, expectedMessage: Pins must be between 0 and 10, #0]</td>
+<td class="success">0.001s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">should handle edge cases - invalid rolls [pins: 11, expectedMessage: Pins must be between 0 and 10, #1]</td>
+<td class="success">0s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">should handle edge cases - valid rolls [pins: 0, #1]</td>
+<td class="success">0s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">should handle edge cases - valid rolls [pins: 10, #2]</td>
+<td class="success">0s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">should handle edge cases - valid rolls [pins: 5, #0]</td>
+<td class="success">0.001s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">should handle frame completion [frameType: incomplete, roll1: 5, roll2: -1, isComplete: false, #3]</td>
+<td class="success">0.001s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">should handle frame completion [frameType: regular, roll1: 3, roll2: 4, isComplete: true, #2]</td>
+<td class="success">0s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">should handle frame completion [frameType: spare, roll1: 5, roll2: 5, isComplete: true, #1]</td>
+<td class="success">0s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">should handle frame completion [frameType: strike, roll1: 10, roll2: -1, isComplete: true, #0]</td>
+<td class="success">0.002s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">should handle gutter game [pins: 0, #0]</td>
+<td class="success">0.001s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">should handle gutter game [pins: 0, #1]</td>
+<td class="success">0s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">should handle gutter game [pins: 0, #2]</td>
+<td class="success">0s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="failures">should handle last frame scenarios [roll1: 10, roll2: 5, roll3: 5, expectedScore: 87, #0]</td>
+<td class="failures">0.001s</td>
+<td class="failures">failed</td>
+</tr>
+<tr>
+<td class="failures">should handle last frame scenarios [roll1: 3, roll2: 4, roll3: -1, expectedScore: 85, #2]</td>
+<td class="failures">0.001s</td>
+<td class="failures">failed</td>
+</tr>
+<tr>
+<td class="failures">should handle last frame scenarios [roll1: 5, roll2: 5, roll3: 5, expectedScore: 87, #1]</td>
+<td class="failures">0.001s</td>
+<td class="failures">failed</td>
+</tr>
+<tr>
+<td class="success">should handle mixed frame types [roll1: 0, roll2: 10, expectedScore: 10, #3]</td>
+<td class="success">0s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">should handle mixed frame types [roll1: 10, roll2: 0, expectedScore: 10, #2]</td>
+<td class="success">0s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">should handle mixed frame types [roll1: 3, roll2: 4, expectedScore: 7, #0]</td>
+<td class="success">0.001s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">should handle mixed frame types [roll1: 5, roll2: 5, expectedScore: 10, #1]</td>
+<td class="success">0.001s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="failures">should handle spares correctly [roll1: 5, roll2: 5, nextRoll: 3, expectedScore: 18, #0]</td>
+<td class="failures">0.003s</td>
+<td class="failures">failed</td>
+</tr>
+<tr>
+<td class="success">should handle spares correctly [roll1: 7, roll2: 3, nextRoll: 4, expectedScore: 18, #1]</td>
+<td class="success">0s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="failures">should handle spares correctly [roll1: 9, roll2: 1, nextRoll: 2, expectedScore: 18, #2]</td>
+<td class="failures">0.001s</td>
+<td class="failures">failed</td>
+</tr>
+<tr>
+<td class="success">should handle strikes correctly [pins: 0, expectedScore: 0, #2]</td>
+<td class="success">0s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="failures">should handle strikes correctly [pins: 10, expectedScore: 10, #0]</td>
+<td class="failures">0.086s</td>
+<td class="failures">failed</td>
+</tr>
+<tr>
+<td class="success">should handle strikes correctly [pins: 5, expectedScore: 5, #1]</td>
+<td class="success">0s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">should validate game state transitions [currentFrame: 1, currentRoll: 1, gameOver: false, #0]</td>
+<td class="success">0.001s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">should validate game state transitions [currentFrame: 1, currentRoll: 2, gameOver: false, #1]</td>
+<td class="success">0s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="failures">should validate game state transitions [currentFrame: 10, currentRoll: 2, gameOver: true, #3]</td>
+<td class="failures">0.001s</td>
+<td class="failures">failed</td>
+</tr>
+<tr>
+<td class="success">should validate game state transitions [currentFrame: 5, currentRoll: 1, gameOver: false, #2]</td>
+<td class="success">0.001s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">should validate roll constraints - invalid pins [pins: -1, #0]</td>
+<td class="success">0.001s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">should validate roll constraints - invalid pins [pins: 11, #1]</td>
+<td class="success">0s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">should validate roll constraints - invalid pins [pins: 15, #2]</td>
+<td class="success">0s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">should validate roll constraints - valid pins [pins: 0, #0]</td>
+<td class="success">0.001s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">should validate roll constraints - valid pins [pins: 10, #2]</td>
+<td class="success">0s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="success">should validate roll constraints - valid pins [pins: 5, #1]</td>
+<td class="success">0s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="failures">spare game should have score 150</td>
+<td class="failures">0.001s</td>
+<td class="failures">failed</td>
+</tr>
+<tr>
+<td class="failures">strike in frame 1 should give bonus points</td>
+<td class="failures">0.010s</td>
+<td class="failures">failed</td>
+</tr>
+<tr>
+<td class="failures">strike in frame 2 should give bonus points</td>
+<td class="failures">0.002s</td>
+<td class="failures">failed</td>
+</tr>
+<tr>
+<td class="failures">strike in frame 3 should give bonus points</td>
+<td class="failures">0.001s</td>
+<td class="failures">failed</td>
+</tr>
+<tr>
+<td class="success">void - should handle strikes correctly [pins: 0, expectedScore: 0, #2]</td>
+<td class="success">0.001s</td>
+<td class="success">passed</td>
+</tr>
+<tr>
+<td class="failures">void - should handle strikes correctly [pins: 10, expectedScore: 10, #0]</td>
+<td class="failures">0.002s</td>
+<td class="failures">failed</td>
+</tr>
+<tr>
+<td class="success">void - should handle strikes correctly [pins: 5, expectedScore: 5, #1]</td>
+<td class="success">0s</td>
+<td class="success">passed</td>
+</tr>
+</table>
+</div>
+</div>
+<div id="footer">
+<p>
+<div>
+<label class="hidden" id="label-for-line-wrapping-toggle" for="line-wrapping-toggle">Wrap lines
+<input id="line-wrapping-toggle" type="checkbox" autocomplete="off"/>
+</label>
+</div>Generated by 
+<a href="http://www.gradle.org">Gradle 8.5</a> at 5 lut 2026, 08:59:42</p>
+</div>
+</div>
+</body>
+</html>

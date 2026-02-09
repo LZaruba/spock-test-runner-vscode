@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.example.CalculatorSpec" tests="6" skipped="0" failures="0" errors="0" timestamp="2026-02-05T07:59:42" hostname="adam-komp" time="0.007">
+  <properties/>
+  <testcase name="should add two numbers correctly" classname="com.example.CalculatorSpec" time="0.003"/>
+  <testcase name="should subtract two numbers correctly" classname="com.example.CalculatorSpec" time="0.0"/>
+  <testcase name="should multiply two numbers correctly" classname="com.example.CalculatorSpec" time="0.001"/>
+  <testcase name="should divide two numbers correctly" classname="com.example.CalculatorSpec" time="0.001"/>
+  <testcase name="should throw exception when dividing by zero" classname="com.example.CalculatorSpec" time="0.001"/>
+  <testcase name="should handle multiple operations" classname="com.example.CalculatorSpec" time="0.001"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

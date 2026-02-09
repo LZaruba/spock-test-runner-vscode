@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.example.FrameSpec" tests="22" skipped="0" failures="3" errors="0" timestamp="2026-02-05T07:59:42" hostname="adam-komp" time="0.017">
+  <properties/>
+  <testcase name="should create empty frame" classname="com.example.FrameSpec" time="0.003"/>
+  <testcase name="should handle single roll [pins: 0, expectedPinsRemaining: 10, expectedScore: 0, #0]" classname="com.example.FrameSpec" time="0.001"/>
+  <testcase name="should handle single roll [pins: 5, expectedPinsRemaining: 5, expectedScore: 5, #1]" classname="com.example.FrameSpec" time="0.0"/>
+  <testcase name="should handle single roll [pins: 10, expectedPinsRemaining: 0, expectedScore: 10, #2]" classname="com.example.FrameSpec" time="0.0"/>
+  <testcase name="should handle two rolls [roll1: 3, roll2: 4, isStrike: false, isSpare: false, isComplete: true, #0]" classname="com.example.FrameSpec" time="0.001"/>
+  <testcase name="should handle two rolls [roll1: 5, roll2: 5, isStrike: false, isSpare: true, isComplete: true, #1]" classname="com.example.FrameSpec" time="0.0"/>
+  <testcase name="should handle two rolls [roll1: 10, roll2: 0, isStrike: true, isSpare: false, isComplete: true, #2]" classname="com.example.FrameSpec" time="0.0"/>
+  <testcase name="should handle two rolls [roll1: 0, roll2: 10, isStrike: false, isSpare: true, isComplete: true, #3]" classname="com.example.FrameSpec" time="0.0"/>
+  <testcase name="should handle last frame with strike [roll1: 10, roll2: 5, roll3: 5, expectedScore: 20, #0]" classname="com.example.FrameSpec" time="0.0">
+    <failure message="java.lang.IllegalArgumentException: Cannot knock down more pins than available" type="java.lang.IllegalArgumentException">java.lang.IllegalArgumentException: Cannot knock down more pins than available
+	at com.example.Frame.addRoll(Frame.java:26)
+	at com.example.FrameSpec.should handle last frame with strike(FrameSpec.groovy:70)
+</failure>
+  </testcase>
+  <testcase name="should handle last frame with strike [roll1: 10, roll2: 10, roll3: 10, expectedScore: 30, #1]" classname="com.example.FrameSpec" time="0.0">
+    <failure message="java.lang.IllegalArgumentException: Cannot knock down more pins than available" type="java.lang.IllegalArgumentException">java.lang.IllegalArgumentException: Cannot knock down more pins than available
+	at com.example.Frame.addRoll(Frame.java:26)
+	at com.example.FrameSpec.should handle last frame with strike(FrameSpec.groovy:70)
+</failure>
+  </testcase>
+  <testcase name="should handle last frame with strike [roll1: 10, roll2: 0, roll3: 0, expectedScore: 10, #2]" classname="com.example.FrameSpec" time="0.0"/>
+  <testcase name="should validate roll constraints - valid rolls [pins: 3, #0]" classname="com.example.FrameSpec" time="0.0"/>
+  <testcase name="should validate roll constraints - valid rolls [pins: 5, #1]" classname="com.example.FrameSpec" time="0.0"/>
+  <testcase name="should validate roll constraints - invalid rolls [pins: 6, #0]" classname="com.example.FrameSpec" time="0.001"/>
+  <testcase name="should validate roll constraints - invalid rolls [pins: 10, #1]" classname="com.example.FrameSpec" time="0.001"/>
+  <testcase name="should handle frame equality [roll1: 3, roll2: 4, isLastFrame: false, shouldEqual: true, #0]" classname="com.example.FrameSpec" time="0.001"/>
+  <testcase name="should handle frame equality [roll1: 5, roll2: 5, isLastFrame: false, shouldEqual: true, #1]" classname="com.example.FrameSpec" time="0.0"/>
+  <testcase name="should handle frame equality [roll1: 10, roll2: 0, isLastFrame: true, shouldEqual: true, #2]" classname="com.example.FrameSpec" time="0.0"/>
+  <testcase name="should display frame correctly [roll1: 3, roll2: 4, expectedDisplay: [3, 4], #0]" classname="com.example.FrameSpec" time="0.001"/>
+  <testcase name="should display frame correctly [roll1: 5, roll2: 5, expectedDisplay: [5, /], #1]" classname="com.example.FrameSpec" time="0.0"/>
+  <testcase name="should display frame correctly [roll1: 10, roll2: -1, expectedDisplay: [X], #2]" classname="com.example.FrameSpec" time="0.0"/>
+  <testcase name="should display frame correctly [roll1: 0, roll2: 10, expectedDisplay: [0, /], #3]" classname="com.example.FrameSpec" time="0.001">
+    <failure message="Condition not satisfied:&#10;&#10;frame.toString() == expectedDisplay&#10;|     |          |  |&#10;|     [0, X]     |  [0, /]&#10;[0, X]           false&#10;                 1 difference (83% similarity)&#10;                 [0, (X)]&#10;                 [0, (/)]&#10;" type="org.spockframework.runtime.SpockComparisonFailure">Condition not satisfied:
+
+frame.toString() == expectedDisplay
+|     |          |  |
+|     [0, X]     |  [0, /]
+[0, X]           false
+                 1 difference (83% similarity)
+                 [0, (X)]
+                 [0, (/)]
+
+	at com.example.FrameSpec.should display frame correctly(FrameSpec.groovy:141)
+</failure>
+  </testcase>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>
