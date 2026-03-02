@@ -4,6 +4,21 @@ All notable changes to the "spock-test-runner-vscode" extension will be document
 
 **Author**: Lukas Zaruba
 
+## [0.0.5] - 2026-03-02
+
+### Added
+- **Void keyword support**: Spock feature methods declared with a `void` return type are now correctly discovered and shown in the Test Explorer.
+- **Sample coverage**: Added a new sample spec to the Gradle sample project to validate `void` keyword handling.
+
+### Changed
+- **ESLint configuration**: Migrated to the modern flat config (`eslint.config.mjs`) and updated ESLint/TypeScript tooling to current versions.
+
+### Fixed
+- **Windows support**: Corrected Gradle wrapper path handling so running tests works reliably on Windows as well as Unix-like systems.
+- **Repository hygiene**: Removed generated Maven `target/` artifacts from version control and updated `.gitignore` to prevent them from being committed again.
+- **Lockfile maintenance**: Reintroduced and cleaned up `package-lock.json` (including duplicate `resolved` URLs) and aligned it with the current npm format.
+- **Security updates**: Bumped `js-yaml`, `qs`, and `minimatch` to patched versions to address known vulnerabilities.
+
 ## [0.0.4] - 2025-10-01
 
 ### Added
