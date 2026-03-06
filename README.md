@@ -2,7 +2,7 @@
 
 A VS Code extension that provides comprehensive test support for the Spock testing framework in Java projects. This extension integrates with VS Code's Test API to provide seamless test discovery, execution, and debugging capabilities for Spock tests.
 
-**Version**: 0.0.5 
+**Version**: 0.0.6 
 **Author**: Lukas Zaruba
 
 > **Inspiration**: This extension was inspired by [Daniel Micah's spock-test-runner](https://github.com/donnffd/spock-test-runner) but focuses exclusively on VS Code's Test API integration rather than CodeLens functionality.
@@ -160,6 +160,45 @@ npm run watch
 # Run tests
 npm test
 ```
+
+### Release Instructions
+
+1. **Bump version** (e.g. to `0.0.7`):
+   - Update `version` in `package.json`
+   - Update the **Version** line in this README
+   - Add a new `## [x.y.z] - YYYY-MM-DD` section in `CHANGELOG.md` with release notes (Added / Changed / Fixed). Credit contributors if applicable.
+
+2. **Commit and tag**  
+   `master` is a protected branch. Do the version bump on a release branch (e.g. `release-v0.0.7`), push it, open a PR into `master`, and merge. After the merge, create and push the tag from `master`:
+   ```bash
+   # On your release branch (before PR):
+   git checkout -b release-vX.Y.Z
+   git add package.json README.md CHANGELOG.md
+   git commit -m "Bump to vX.Y.Z"
+   git push origin release-vX.Y.Z
+   # Open PR, merge to master, then:
+   git checkout master
+   git pull origin master
+   git tag vX.Y.Z
+   git push origin vX.Y.Z
+   ```
+
+3. **Build the VSIX** (installable package):
+   ```bash
+   npm run compile
+   npm run package
+   ```
+   This produces `spock-test-runner-vscode-X.Y.Z.vsix` in the project root.
+
+4. **Publish** (optional). You can publish manually to both registries:
+
+   - **VS Code Marketplace**  
+     - **CLI**: `npx vsce publish` (requires a [Personal Access Token](https://code.visualstudio.com/api/working-with-extensions/publishing-extension#get-a-personal-access-token) for your publisher).  
+     - **Manual**: [Publish to VS Code Marketplace](https://marketplace.visualstudio.com/manage) → select your publisher → “Add new extension” → upload the `.vsix` file.
+
+   - **Open VSX** (e.g. VSCodium, Eclipse Theia)  
+     - **CLI**: `npx ovsx publish spock-test-runner-vscode-X.Y.Z.vsix -p <open-vsx-token>` ([create token](https://open-vsx.org/user-settings/tokens)).  
+     - **Manual**: [Open VSX publish](https://open-vsx.org/namespace-settings) → select your namespace → “Publish Extension” → upload the `.vsix` file.
 
 ### Project Structure
 ```
