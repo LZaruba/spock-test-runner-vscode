@@ -4,6 +4,13 @@ All notable changes to the "spock-test-runner-vscode" extension will be document
 
 **Author**: Lukas Zaruba
 
+## [0.0.7] - 2026-03-06
+
+### Fixed
+- **Windows**: Quote arguments with spaces for Gradle and Maven commands so test execution works correctly on Windows (spawn compatibility).
+
+Thanks to **Adam Tychoniewicz** ([@adam-tychoniewicz](https://github.com/adam-tychoniewicz), he/him) for his contributions.
+
 ## [0.0.6] - 2026-03-05
 
 ### Fixed
