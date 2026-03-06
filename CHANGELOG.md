@@ -4,6 +4,13 @@ All notable changes to the "spock-test-runner-vscode" extension will be document
 
 **Author**: Lukas Zaruba
 
+## [0.0.6] - 2026-03-05
+
+### Fixed
+- **Windows (EINVAL)**: Fixed EINVAL error on Windows by adjusting command execution and Maven wrapper detection.
+
+Thanks to **Adam Tychoniewicz** ([@adam-tychoniewicz](https://github.com/adam-tychoniewicz), he/him) for his contributions.
+
 ## [0.0.5] - 2026-03-02
 
 ### Added
