@@ -49,7 +49,8 @@ export class TestExecutionService {
       const childProcess = spawn(commandArgs[0], commandArgs.slice(1), {
         cwd: options.workspacePath,
         stdio: 'pipe',
-        env: { ...process.env }
+        env: { ...process.env },
+        shell: process.platform === 'win32'
       });
 
       // Set up timeout

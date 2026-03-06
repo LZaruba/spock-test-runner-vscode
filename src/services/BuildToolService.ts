@@ -99,7 +99,8 @@ export class BuildToolService {
     workspacePath?: string,
     logger?: vscode.OutputChannel
   ): string[] {
-    const mavenCommand = (workspacePath && this.hasMavenWrapper(workspacePath)) ? './mvnw' : 'mvn';
+    const wrapperName = process.platform === 'win32' ? 'mvnw.cmd' : './mvnw';
+    const mavenCommand = (workspacePath && this.hasMavenWrapper(workspacePath)) ? wrapperName : 'mvn';
 
     // Maven test parameter format: -Dtest=ClassName#methodName
     // Convert from "com.example.FrameSpec.should handle last frame"
@@ -138,6 +139,7 @@ export class BuildToolService {
   }
 
   private static hasMavenWrapper(workspacePath: string): boolean {
-    return fs.existsSync(path.join(workspacePath, 'mvnw'));
+    const wrapperName = process.platform === 'win32' ? 'mvnw.cmd' : 'mvnw';
+    return fs.existsSync(path.join(workspacePath, wrapperName));
   }
 }
