@@ -76,7 +76,11 @@ export class BuildToolService {
     const wrapperName = process.platform === 'win32' ? 'gradlew.bat' : 'gradlew';
     const hasWrapper = workspacePath && this.hasGradleWrapper(workspacePath);
     const gradleCommand = hasWrapper ? path.join(workspacePath!, wrapperName) : 'gradle';
-    const baseArgs = [gradleCommand, 'test', '--tests', testName];
+    // On Windows, shell:true is used for spawn, so arguments with spaces
+    // must be quoted to prevent cmd.exe from splitting them.
+    // On Linux, shell is false and each arg is passed directly, so no quoting needed.
+    const quotedTestName = process.platform === 'win32' ? `"${testName}"` : testName;
+    const baseArgs = [gradleCommand, 'test', '--tests', quotedTestName];
 
     // Use init script to force test execution
     const initScriptPath = this.getInitScriptPath();
@@ -110,7 +114,12 @@ export class BuildToolService {
       ? testName.substring(0, lastDotIndex) + '#' + testName.substring(lastDotIndex + 1)
       : testName;
 
-    const baseArgs = [mavenCommand, 'test', `-Dtest=${testParam}`];
+    // On Windows, shell:true is used for spawn, so arguments with spaces
+    // must be quoted to prevent cmd.exe from splitting them.
+    // On Linux, shell is false and each arg is passed directly, so no quoting needed.
+    const quotedParam = process.platform === 'win32' ? `"${testParam}"` : testParam;
+    const testArg = `-Dtest=${quotedParam}`;
+    const baseArgs = [mavenCommand, 'test', testArg];
 
     if (logger) {
       logger.appendLine(`BuildToolService: Using Maven to execute test: ${testParam}`);

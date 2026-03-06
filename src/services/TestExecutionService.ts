@@ -43,7 +43,8 @@ export class TestExecutionService {
       }
 
       this.logger.appendLine(`TestExecutionService: Executing test: ${options.className}.${options.testName}`);
-      this.logger.appendLine(`TestExecutionService: Command: ${commandArgs.join(' ')}`);
+      const displayArgs = commandArgs.map(arg => arg.includes(' ') ? `"${arg}"` : arg);
+      this.logger.appendLine(`TestExecutionService: Command: ${displayArgs.join(' ')}`);
       this.logger.appendLine(`TestExecutionService: Working directory: ${options.workspacePath}`);
 
       const childProcess = spawn(commandArgs[0], commandArgs.slice(1), {
