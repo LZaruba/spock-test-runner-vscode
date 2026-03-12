@@ -25,6 +25,7 @@ export class TestExecutionService {
         fullTestName, 
         options.debug, 
         options.workspacePath,
+        options.testFilePath,
         this.logger
       );
 

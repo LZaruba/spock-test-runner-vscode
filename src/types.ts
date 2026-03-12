@@ -34,6 +34,7 @@ export interface TestExecutionOptions {
   workspacePath: string;
   buildTool: BuildTool;
   debug: boolean;
+  testFilePath?: string;  // Full path to test file for module detection in multi-module projects
 }
 
 export interface DebugSessionOptions {

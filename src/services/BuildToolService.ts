@@ -53,13 +53,14 @@ export class BuildToolService {
     testName: string,
     debug: boolean,
     workspacePath?: string,
+    testFilePath?: string,
     logger?: vscode.OutputChannel
   ): string[] {
     const buildTool = workspacePath ? this.detectBuildTool(workspacePath) : null;
     const escapedTestName = testName;
 
     if (buildTool === 'maven') {
-      return this.buildMavenCommandArgs(escapedTestName, debug, workspacePath, logger);
+      return this.buildMavenCommandArgs(escapedTestName, debug, workspacePath, testFilePath, logger);
     } else {
       return this.buildGradleCommandArgs(escapedTestName, debug, workspacePath, logger);
     }
@@ -97,41 +98,6 @@ export class BuildToolService {
     }
   }
 
-  private static buildMavenCommandArgs(
-    testName: string,
-    debug: boolean,
-    workspacePath?: string,
-    logger?: vscode.OutputChannel
-  ): string[] {
-    const wrapperName = process.platform === 'win32' ? 'mvnw.cmd' : './mvnw';
-    const mavenCommand = (workspacePath && this.hasMavenWrapper(workspacePath)) ? wrapperName : 'mvn';
-
-    // Maven test parameter format: -Dtest=ClassName#methodName
-    // Convert from "com.example.FrameSpec.should handle last frame"
-    // to "com.example.FrameSpec#should handle last frame" (last dot becomes #)
-    const lastDotIndex = testName.lastIndexOf('.');
-    const testParam = lastDotIndex > 0
-      ? testName.substring(0, lastDotIndex) + '#' + testName.substring(lastDotIndex + 1)
-      : testName;
-
-    // On Windows, shell:true is used for spawn, so arguments with spaces
-    // must be quoted to prevent cmd.exe from splitting them.
-    // On Linux, shell is false and each arg is passed directly, so no quoting needed.
-    const quotedParam = process.platform === 'win32' ? `"${testParam}"` : testParam;
-    const testArg = `-Dtest=${quotedParam}`;
-    const baseArgs = [mavenCommand, 'test', testArg];
-
-    if (logger) {
-      logger.appendLine(`BuildToolService: Using Maven to execute test: ${testParam}`);
-    }
-
-    if (debug) {
-      return [...baseArgs, '-Dmaven.surefire.debug'];
-    } else {
-      return baseArgs;
-    }
-  }
-
   private static getInitScriptPath(): string {
     const initScriptPath = path.join(__dirname, '..', '..', 'resources', 'force-tests.init.gradle');
 
@@ -150,5 +116,114 @@ export class BuildToolService {
   private static hasMavenWrapper(workspacePath: string): boolean {
     const wrapperName = process.platform === 'win32' ? 'mvnw.cmd' : 'mvnw';
     return fs.existsSync(path.join(workspacePath, wrapperName));
+  }
+
+  /**
+   * Find the correct directory for running Maven tests for a given test file.
+   * For Maven multi-module projects, this finds the module containing the test.
+   * 
+   * @param testFilePath - Full path to the test file (e.g., /workspace/project/module-a/src/test/groovy/...)
+   * @param workspaceRoot - Root workspace folder path
+   * @returns The directory where Maven should be executed (module directory or workspace root)
+   */
+  static findMavenModuleDirectory(testFilePath: string, workspaceRoot: string): string {
+    // Walk up from the test file directory to find a pom.xml
+    // This handles Maven multi-module projects where tests are in submodules
+    let currentDir = path.dirname(testFilePath);
+    const rootDir = workspaceRoot;
+
+    // Limit the search to avoid infinite loops (max 20 levels)
+    let levels = 0;
+    const maxLevels = 20;
+
+    while (currentDir && currentDir.length >= rootDir.length && levels < maxLevels) {
+      const pomPath = path.join(currentDir, 'pom.xml');
+      
+      // Check if this directory has a pom.xml
+      if (fs.existsSync(pomPath)) {
+        // Check if this is NOT the root project (has parent reference)
+        try {
+          const pomContent = fs.readFileSync(pomPath, 'utf8');
+          const hasParent = pomContent.includes('<parent>');
+          
+          // If this pom.xml has a parent, it's likely a submodule
+          // Return this directory as the module directory
+          if (hasParent) {
+            return currentDir;
+          }
+        } catch (e) {
+          // Ignore read errors
+        }
+      }
+
+      // Move to parent directory
+      const parentDir = path.dirname(currentDir);
+      if (parentDir === currentDir) {
+        // Reached filesystem root
+        break;
+      }
+      currentDir = parentDir;
+      levels++;
+    }
+
+    // If no submodule found, return the workspace root
+    return workspaceRoot;
+  }
+
+  /**
+   * Build Maven command args with support for multi-module projects.
+   * 
+   * @param testName - Full test name (class.method)
+   * @param debug - Whether debugging is enabled
+   * @param workspacePath - Root workspace path
+   * @param testFilePath - Optional full path to the test file (for module detection)
+   * @param logger - Optional logger
+   * @returns Command arguments array
+   */
+  static buildMavenCommandArgs(
+    testName: string,
+    debug: boolean,
+    workspacePath?: string,
+    testFilePath?: string,
+    logger?: vscode.OutputChannel
+  ): string[] {
+    const wrapperName = process.platform === 'win32' ? 'mvnw.cmd' : './mvnw';
+    const mavenCommand = (workspacePath && this.hasMavenWrapper(workspacePath)) ? wrapperName : 'mvn';
+
+    // Determine the working directory for Maven
+    // For multi-module projects, use the module directory containing the test
+    let mavenWorkingDir = workspacePath;
+    if (testFilePath && workspacePath) {
+      const moduleDir = this.findMavenModuleDirectory(testFilePath, workspacePath);
+      if (moduleDir !== workspacePath && logger) {
+        logger.appendLine(`BuildToolService: Detected Maven submodule: ${moduleDir}`);
+      }
+      mavenWorkingDir = moduleDir;
+    }
+
+    // Maven test parameter format: -Dtest=ClassName#methodName
+    // Convert from "com.example.FrameSpec.should handle last frame"
+    // to "com.example.FrameSpec#should handle last frame" (last dot becomes #)
+    const lastDotIndex = testName.lastIndexOf('.');
+    const testParam = lastDotIndex > 0
+      ? testName.substring(0, lastDotIndex) + '#' + testName.substring(lastDotIndex + 1)
+      : testName;
+
+    // On Windows, shell:true is used for spawn, so arguments with spaces
+    // must be quoted to prevent cmd.exe from splitting them.
+    // On Linux, shell is false and each arg is passed directly, so no quoting needed.
+    const quotedParam = process.platform === 'win32' ? `"${testParam}"` : testParam;
+    const testArg = `-Dtest=${quotedParam}`;
+    const baseArgs = [mavenCommand, '-f', path.join(mavenWorkingDir!, 'pom.xml'), 'test', testArg];
+
+    if (logger) {
+      logger.appendLine(`BuildToolService: Using Maven to execute test: ${testParam} in directory: ${mavenWorkingDir}`);
+    }
+
+    if (debug) {
+      return [...baseArgs, '-Dmaven.surefire.debug'];
+    } else {
+      return baseArgs;
+    }
   }
 }

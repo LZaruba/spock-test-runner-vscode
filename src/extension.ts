@@ -79,7 +79,7 @@ async function runSpockTest(
     ? `${testClassName}.${testMethod}` 
     : `${testClassName}`;
   
-  const commandArgs = BuildToolService.buildCommandArgs(escapedTestName, debug, workspacePath, logger);
+  const commandArgs = BuildToolService.buildCommandArgs(escapedTestName, debug, workspacePath, undefined, logger);
 
   try {
     terminal.sendText(`cd ${workspacePath}`);
