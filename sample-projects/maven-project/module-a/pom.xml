@@ -60,11 +60,21 @@
         <executions>
           <execution>
             <goals>
-              <goal>compile</goal>
               <goal>compileTests</goal>
             </goals>
           </execution>
         </executions>
+        <configuration>
+          <testSources>
+            <testSource>
+              <directory>${project.basedir}/src/test/groovy</directory>
+              <includes>
+                <include>**/*.groovy</include>
+              </includes>
+            </testSource>
+          </testSources>
+          <invokeGroovyJavaCrossCompiler>true</invokeGroovyJavaCrossCompiler>
+        </configuration>
       </plugin>
 
       <plugin>
