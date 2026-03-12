@@ -107,7 +107,8 @@
     "test:e2e": "jest --testPathPatterns='E2E' --testTimeout=60000",
     "test:all": "npm run test:unit && npm run test:integration && npm run test:performance && npm run test:parameterized",
     "package": "vsce package",
-    "run-vscode": "./run-vscode.sh"
+    "run-vscode-gradle": "./run-vscode.sh gradle",
+    "run-vscode-maven": "./run-vscode.sh maven"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.2",
