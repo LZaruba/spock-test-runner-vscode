@@ -13,6 +13,7 @@ All notable changes to the "spock-test-runner-vscode" extension will be document
 
 ### Changed
 - **Maven build configuration**: Updated Groovy test compilation settings and upgraded `gmavenplus-plugin` to `v4.3.1`.
+- **Dependencies**: Bumped `undici` from `7.20.0` to `7.24.4`.
 
 ### Fixed
 - **Windows compatibility**: Quote arguments with spaces when spawning Gradle/Maven commands on Windows.
