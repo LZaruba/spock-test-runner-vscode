@@ -2,7 +2,7 @@
 
 A VS Code extension that provides comprehensive test support for the Spock testing framework in Java projects. This extension integrates with VS Code's Test API to provide seamless test discovery, execution, and debugging capabilities for Spock tests.
 
-**Version**: 0.0.7 
+**Version**: 0.0.8
 **Author**: Lukas Zaruba
 
 > **Inspiration**: This extension was inspired by [Daniel Micah's spock-test-runner](https://github.com/donnffd/spock-test-runner) but focuses exclusively on VS Code's Test API integration rather than CodeLens functionality.

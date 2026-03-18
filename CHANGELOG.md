@@ -4,6 +4,22 @@ All notable changes to the "spock-test-runner-vscode" extension will be document
 
 **Author**: Lukas Zaruba
 
+## [0.0.8] - 2026-03-18
+
+### Added
+- **Maven multi-module support**: Run and debug Spock tests in Maven multi-module projects.
+- **Maven wrapper**: Added Maven wrapper to the sample Maven project (cross-platform test execution).
+- **Sample submodule**: Added `module-a` to the Maven sample project for validating multi-module behavior.
+
+### Changed
+- **Maven build configuration**: Updated Groovy test compilation settings and upgraded `gmavenplus-plugin` to `v4.3.1`.
+- **Dependencies**: Bumped `undici` from `7.20.0` to `7.24.4`.
+
+### Fixed
+- **Windows compatibility**: Quote arguments with spaces when spawning Gradle/Maven commands on Windows.
+
+Thanks to **Adam Tychoniewicz** ([@adam-tychoniewicz](https://github.com/adam-tychoniewicz), he/him) for his contributions.
+
 ## [0.0.7] - 2026-03-06
 
 ### Fixed
