@@ -375,7 +375,8 @@ export class SpockTestController {
         testName: data.testName!,
         workspacePath: workspaceFolder.uri.fsPath,
         buildTool,
-        debug
+        debug,
+        testFilePath: test.uri?.fsPath
       }, run, test);
       
       // Handle data-driven test results
