@@ -18,6 +18,7 @@ This file provides guidance to agents when working with code in this repository.
 
 - **Gradle init script**: Test execution requires `resources/force-tests.init.gradle` - it forces Gradle to run tests even when up-to-date
 - **Abstract classes skipped**: [`TestDiscoveryService.ts`](src/services/TestDiscoveryService.ts:6) automatically skips `abstract class ... extends Specification`
+- **Spec inheritance**: [`SpecClassIndex.ts`](src/services/SpecClassIndex.ts) resolves classes extending `Specification` through base classes declared in any workspace file; inherited features are listed under each inheriting spec and run as `InheritingSpec.featureName`
 - **Lifecycle methods ignored**: Methods named `setup`, `setupSpec`, `cleanup`, `cleanupSpec` are not treated as tests
 - **Data-driven test detection**: Tests with `where:` blocks are marked as data-driven and parsed differently
 - **Test timeout**: 5 minutes hardcoded in [`TestExecutionService.ts`](src/services/TestExecutionService.ts:76)
@@ -29,6 +30,7 @@ This file provides guidance to agents when working with code in this repository.
 - Entry point: [`extension.ts`](src/extension.ts) - registers commands and creates TestController
 - TestController: [`testController.ts`](src/testController.ts) - implements VS Code Test API
 - Test discovery: [`TestDiscoveryService.ts`](src/services/TestDiscoveryService.ts) - parses Spock Groovy files
+- Spec inheritance: [`SpecClassIndex.ts`](src/services/SpecClassIndex.ts) - indexes classes of all files to resolve base specs and inherited features
 - Test execution: [`TestExecutionService.ts`](src/services/TestExecutionService.ts) - spawns Gradle/Maven
 - Result parsing: [`TestResultParser.ts`](src/services/TestResultParser.ts) - parses console output and XML reports
 

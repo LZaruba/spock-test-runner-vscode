@@ -17,6 +17,8 @@ sample-project/
 │   ├── EmptySpec.groovy          # Empty test class (edge case)
 │   ├── NestedClassSpec.groovy    # Nested classes (edge case)
 │   ├── AbstractSpec.groovy       # Abstract test class (edge case)
+│   ├── ChildSpec.groovy          # Extends AbstractSpec (indirect Specification subclass)
+│   ├── GrandChildSpec.groovy     # Extends ChildSpec (two levels of inheritance)
 │   ├── MalformedSpec.groovy      # Malformed syntax (edge case)
 │   ├── CalculatorSpec.groovy     # Original calculator tests
 │   ├── UserServiceSpec.groovy    # Original user service tests
@@ -75,6 +77,7 @@ sample-project/
 - **EmptySpec.groovy**: Empty test class
 - **NestedClassSpec.groovy**: Nested test classes
 - **AbstractSpec.groovy**: Abstract test classes
+- **ChildSpec.groovy** / **GrandChildSpec.groovy**: Specs extending `Specification` indirectly, running the features inherited from their base classes
 - **MalformedSpec.groovy**: Malformed Groovy syntax
 
 ## 🚀 Running the Tests

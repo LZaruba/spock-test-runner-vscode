@@ -84,6 +84,28 @@ class MySpec extends Specification {
 }
 ```
 
+Specifications don't have to extend `Specification` directly. Classes extending it through one or more base classes are discovered as well, and the feature methods inherited from the base classes are listed (and run) under each inheriting specification:
+
+```groovy
+abstract class BaseSpec extends Specification {
+
+    def "inherited test"() {
+        expect:
+        // runs as part of every spec extending BaseSpec
+    }
+}
+
+class MySpec extends BaseSpec {
+
+    def "own test"() {
+        expect:
+        // simple assertion
+    }
+}
+```
+
+Base classes are resolved across all `.groovy` files of the workspace. When a base class is not part of the workspace (e.g. `GebSpec` coming from a library), the class is recognized by its feature methods using Spock blocks (`given:`, `when:`, `then:`, `expect:`, `where:`).
+
 ## Configuration
 
 ### Build Tool Detection
@@ -127,7 +149,7 @@ To test the extension:
 ## Troubleshooting
 
 ### Tests Not Discovered
-- Ensure your test classes extend `Specification`
+- Ensure your test classes extend `Specification` (directly or through base classes)
 - Check that your Gradle build tool is properly configured
 - Verify that Spock dependencies are included in your project
 - Check the Output panel for "Spock Test Runner" logs
