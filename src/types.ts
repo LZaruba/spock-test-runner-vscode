@@ -67,4 +67,19 @@ export interface SpockTestClass {
   range: vscode.Range;
   methods: SpockTestMethod[];
   isAbstract?: boolean;
+  superClass?: string;  // Superclass as written in the declaration, e.g. "BaseSpec" or "com.example.BaseSpec"
+  hasSpockBlocks?: boolean;  // True when at least one feature method contains a Spock block label (given:, expect:, ...)
+  inheritedMethods?: InheritedSpockTestMethod[];  // Feature methods inherited from base specs (base-most first)
+}
+
+export interface InheritedSpockTestMethod {
+  method: SpockTestMethod;
+  declaringClass: string;
+  fileKey: string;  // Key (file URI) of the file declaring the method
+}
+
+export interface ParsedGroovyFile {
+  packageName?: string;
+  imports: Record<string, string>;  // Simple name or alias -> fully qualified name
+  classes: SpockTestClass[];  // Classes extending another class, whether they are specifications or not
 }
