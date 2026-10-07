@@ -2,10 +2,11 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as vscode from 'vscode';
 import { BuildToolService } from './services/BuildToolService';
+import { SpecClassIndex } from './services/SpecClassIndex';
 import { TestDiscoveryService } from './services/TestDiscoveryService';
 import { TestExecutionService } from './services/TestExecutionService';
 import { TestResultParser } from './services/TestResultParser';
-import { TestIterationResult } from './types';
+import { SpockTestMethod, TestIterationResult } from './types';
 
 export class SpockTestController {
   private controller: vscode.TestController;
@@ -14,6 +15,7 @@ export class SpockTestController {
   private testExecutionService: TestExecutionService;
   private testResultParser: TestResultParser;
   private iterationItems = new Map<string, vscode.TestItem[]>(); // Track iteration items by file URI
+  private specIndex = new SpecClassIndex(); // Classes of all discovered files, used to resolve spec inheritance
 
   constructor(context: vscode.ExtensionContext, logger: vscode.OutputChannel) {
     this.logger = logger;
@@ -99,6 +101,9 @@ export class SpockTestController {
       watcher.onDidDelete(uri => {
         this.logger.appendLine(`SpockTestController: File deleted: ${uri.fsPath}`);
         this.controller.items.delete(uri.toString());
+        const dependentFiles = this.specIndex.getDependentFiles(uri.toString());
+        this.specIndex.remove(uri.toString());
+        this.refreshDependentFiles(dependentFiles);
       });
     });
   }
@@ -147,6 +152,7 @@ export class SpockTestController {
     // Clear all existing test items to avoid caching issues
     this.logger.appendLine('SpockTestController: Clearing existing test items...');
     this.controller.items.replace([]);
+    this.specIndex.clear();
     
     if (!vscode.workspace.workspaceFolders) {
       this.logger.appendLine('SpockTestController: No workspace folders found');
@@ -155,6 +161,7 @@ export class SpockTestController {
 
     this.logger.appendLine(`SpockTestController: Found ${vscode.workspace.workspaceFolders.length} workspace folders`);
     
+    const fileItems: vscode.TestItem[] = [];
     for (const workspaceFolder of vscode.workspace.workspaceFolders) {
       this.logger.appendLine(`SpockTestController: Searching in workspace: ${workspaceFolder.uri.fsPath}`);
       const pattern = new vscode.RelativePattern(workspaceFolder, '**/*.groovy');
@@ -166,8 +173,16 @@ export class SpockTestController {
       for (const file of files) {
         this.logger.appendLine(`SpockTestController: Processing file: ${file.fsPath}`);
         const fileItem = this.getOrCreateFile(file);
-        await this.discoverTestsInFile(fileItem);
+        if (await this.indexFile(fileItem)) {
+          fileItems.push(fileItem);
+        }
       }
+    }
+
+    // Test items are created only once all files are indexed, so that specs extending
+    // base classes from other files are resolved regardless of the order of the files
+    for (const fileItem of fileItems) {
+      this.createTestItems(fileItem);
     }
   }
 
@@ -178,15 +193,50 @@ export class SpockTestController {
 
     this.logger.appendLine(`SpockTestController: discoverTestsInFile called for: ${file.uri.fsPath}`);
     
+    // Specs inheriting from classes of this file have to be refreshed as well, both the ones
+    // depending on its previous content and the ones depending on its new content
+    const fileKey = file.uri.toString();
+    const dependentFiles = new Set(this.specIndex.getDependentFiles(fileKey));
+
+    if (await this.indexFile(file)) {
+      this.createTestItems(file);
+      this.specIndex.getDependentFiles(fileKey).forEach(dependentFile => dependentFiles.add(dependentFile));
+      this.refreshDependentFiles([...dependentFiles]);
+    }
+  }
+
+  /**
+   * Reads and parses the file, storing its classes in the spec index. Returns false when the file cannot be read.
+   */
+  private async indexFile(file: vscode.TestItem): Promise<boolean> {
+    if (!file.uri) {
+      return false;
+    }
+
     // Clean up old iteration items for this file
     this.cleanupIterationItems(file.uri.toString());
     
     try {
       const document = await vscode.workspace.openTextDocument(file.uri);
       const content = document.getText();
-      this.parseTestsInFile(file, content);
+      this.specIndex.update(file.uri.toString(), TestDiscoveryService.parseFile(content));
+      return true;
     } catch (error) {
       this.logger.appendLine(`Error discovering tests in ${file.uri.fsPath}: ${error}`);
+      return false;
+    }
+  }
+
+  /**
+   * Recreates the test items of files whose specs inherit from a changed (or deleted) file.
+   */
+  private refreshDependentFiles(fileKeys: string[]): void {
+    for (const fileKey of fileKeys) {
+      const fileItem = this.controller.items.get(fileKey);
+      if (fileItem) {
+        this.logger.appendLine(`SpockTestController: Refreshing tests inheriting from changed file: ${fileItem.uri?.fsPath}`);
+        this.createTestItems(fileItem);
+      }
     }
   }
 
@@ -204,7 +254,7 @@ export class SpockTestController {
     return file;
   }
 
-  private parseTestsInFile(file: vscode.TestItem, content: string): void {
+  private createTestItems(file: vscode.TestItem): void {
     if (!file.uri) {
       return;
     }
@@ -214,7 +264,7 @@ export class SpockTestController {
     // Clear existing children
     file.children.replace([]);
 
-    const testClasses = TestDiscoveryService.parseTestsInFile(content);
+    const testClasses = this.specIndex.getSpecClasses(file.uri.toString());
     let testCount = 0;
     let hasRunnableClasses = false;
 
@@ -242,6 +292,16 @@ export class SpockTestController {
       this.testData.set(classItem, { type: 'class', className: testClass.name });
       file.children.add(classItem);
 
+      // Features inherited from base specs run as part of this spec, so they are listed (and run) under it,
+      // while pointing to their declaration in the base class
+      for (const inherited of testClass.inheritedMethods || []) {
+        this.logger.appendLine(`SpockTestController: Found test method: ${inherited.method.name} (inherited from ${inherited.declaringClass})`);
+        testCount++;
+        const declaringFileUri = this.controller.items.get(inherited.fileKey)?.uri || file.uri;
+        const testItem = this.createTestMethodItem(classItem, testClass.name, inherited.method, declaringFileUri, file.uri);
+        testItem.description = `inherited from ${inherited.declaringClass}`;
+      }
+
       for (const testMethod of testClass.methods) {
         this.logger.appendLine(`SpockTestController: Found test method: ${testMethod.name}`);
         
@@ -249,47 +309,7 @@ export class SpockTestController {
         this.logger.appendLine(`[DEBUG] Method ${testMethod.name} in class ${testClass.name}`);
         
         testCount++;
-        
-        if (testMethod.isDataDriven) {
-          this.logger.appendLine(`[DEBUG] Found data-driven method: ${testMethod.name} in class ${testClass.name}`);
-          // Create parent test item for data-driven test
-          const parentTestItem = this.controller.createTestItem(
-            `${file.uri.toString()}#${testClass.name}#${testMethod.name}`,
-            testMethod.name,
-            file.uri
-          );
-          parentTestItem.range = testMethod.range;
-          parentTestItem.canResolveChildren = false;
-          parentTestItem.tags = [new vscode.TestTag('runnable')];
-          this.logger.appendLine(`[DEBUG] Data-driven method ${testMethod.name} - ASSIGNED runnable tag`);
-          this.testData.set(parentTestItem, {
-            type: 'test',
-            className: testClass.name,
-            testName: testMethod.name,
-            isDataDriven: true
-          });
-          classItem.children.add(parentTestItem);
-          
-          // Don't create individual test items for data iterations
-          // They will be shown in test results when the parent test runs
-          // but won't have individual run actions
-        } else {
-          // Regular test method
-          const testItem = this.controller.createTestItem(
-            `${file.uri.toString()}#${testClass.name}#${testMethod.name}`,
-            testMethod.name,
-            file.uri
-          );
-          testItem.range = testMethod.range;
-          testItem.tags = [new vscode.TestTag('runnable')];
-          this.logger.appendLine(`[DEBUG] Regular method ${testMethod.name} - ASSIGNED runnable tag`);
-          this.testData.set(testItem, {
-            type: 'test',
-            className: testClass.name,
-            testName: testMethod.name
-          });
-          classItem.children.add(testItem);
-        }
+        this.createTestMethodItem(classItem, testClass.name, testMethod, file.uri);
       }
     }
     
@@ -306,6 +326,48 @@ export class SpockTestController {
     this.logger.appendLine(`[DEBUG] File ${file.uri.fsPath} - Final tags: ${JSON.stringify(file.tags.map(t => t.id))}`);
     
     this.logger.appendLine(`SpockTestController: Parsed ${testCount} tests in file: ${file.uri.fsPath}`);
+  }
+
+  /**
+   * Creates the test item of a feature method. For inherited features the item points to the base class
+   * declaring the method, while specFileUri points to the file of the spec running it.
+   */
+  private createTestMethodItem(
+    classItem: vscode.TestItem,
+    className: string,
+    testMethod: SpockTestMethod,
+    uri: vscode.Uri,
+    specFileUri?: vscode.Uri
+  ): vscode.TestItem {
+    const testItem = this.controller.createTestItem(
+      `${classItem.id}#${testMethod.name}`,
+      testMethod.name,
+      uri
+    );
+    testItem.range = testMethod.range;
+    testItem.tags = [new vscode.TestTag('runnable')];
+    const data: TestData = {
+      type: 'test',
+      className: className,
+      testName: testMethod.name,
+      specFileUri: specFileUri
+    };
+
+    if (testMethod.isDataDriven) {
+      this.logger.appendLine(`[DEBUG] Found data-driven method: ${testMethod.name} in class ${className}`);
+      // Don't create individual test items for data iterations
+      // They will be shown in test results when the parent test runs
+      // but won't have individual run actions
+      testItem.canResolveChildren = false;
+      data.isDataDriven = true;
+      this.logger.appendLine(`[DEBUG] Data-driven method ${testMethod.name} - ASSIGNED runnable tag`);
+    } else {
+      this.logger.appendLine(`[DEBUG] Regular method ${testMethod.name} - ASSIGNED runnable tag`);
+    }
+
+    this.testData.set(testItem, data);
+    classItem.children.add(testItem);
+    return testItem;
   }
 
   private async runHandler(debug: boolean, request: vscode.TestRunRequest, token: vscode.CancellationToken): Promise<void> {
@@ -360,7 +422,9 @@ export class SpockTestController {
     run.started(test);
 
     try {
-      const workspaceFolder = vscode.workspace.getWorkspaceFolder(test.uri);
+      // Inherited features are declared in another file, but run in the context of the spec inheriting them
+      const specFileUri = data.specFileUri || test.uri;
+      const workspaceFolder = vscode.workspace.getWorkspaceFolder(specFileUri);
       if (!workspaceFolder) {
         throw new Error('No workspace folder found');
       }
@@ -376,7 +440,7 @@ export class SpockTestController {
         workspacePath: workspaceFolder.uri.fsPath,
         buildTool,
         debug,
-        testFilePath: test.uri?.fsPath
+        testFilePath: specFileUri.fsPath
       }, run, test);
       
       // Handle data-driven test results
@@ -650,4 +714,5 @@ interface TestData {
   testName?: string;
   isDataDriven?: boolean;
   iterationResults?: TestIterationResult[];
+  specFileUri?: vscode.Uri; // File of the spec running an inherited feature (the item URI points to the base class)
 }

@@ -1,15 +1,35 @@
 import * as vscode from 'vscode';
-import { SpockTestClass, SpockTestMethod } from '../types';
+import { ParsedGroovyFile, SpockTestClass, SpockTestMethod } from '../types';
+import { SpecClassIndex } from './SpecClassIndex';
 
 export class TestDiscoveryService {
   private static readonly LIFECYCLE_METHODS = new Set(['setup', 'setupSpec', 'cleanup', 'cleanupSpec']);
-  private static readonly CLASS_REGEX = /^(?:abstract\s+)?class\s+(\w+)\s+extends\s+(?:[\w.]*\.)?Specification\b/;
+  private static readonly CLASS_REGEX = /^(?:abstract\s+)?class\s+(\w+)(?:\s*<[^>]*>)?\s+extends\s+([\w.]+)/;
+  private static readonly PACKAGE_REGEX = /^package\s+([\w.]+)/;
+  private static readonly IMPORT_REGEX = /^import\s+(?!static\b)([\w.]+)(?:\s+as\s+(\w+))?\s*;?\s*$/;
   private static readonly METHOD_HEADER_REGEX = /^(?:def|void)\s+(['"]([^'"]+)['"]|([a-zA-Z_][a-zA-Z0-9_]*))\s*(?:\([^)]*\))?\s*(\{)?\s*$/;
   private static readonly BLOCK_LABEL_REGEX = /^(given|when|then|expect|where)\s*:\s*$/;
 
+  /**
+   * Parses the Spock specifications declared in a single file. Specifications extending a base class
+   * declared in the same file are recognized as well; use SpecClassIndex to resolve base classes
+   * declared in other files.
+   */
   static parseTestsInFile(content: string): SpockTestClass[] {
+    const fileKey = 'file';
+    const index = new SpecClassIndex();
+    index.update(fileKey, this.parseFile(content));
+    return index.getSpecClasses(fileKey);
+  }
+
+  /**
+   * Parses the package, imports and the classes extending another class declared in a Groovy file,
+   * including classes that do not extend Specification directly, so that inheritance can be
+   * resolved across files.
+   */
+  static parseFile(content: string): ParsedGroovyFile {
     const lines = content.split('\n');
-    const testClasses: SpockTestClass[] = [];
+    const parsedFile: ParsedGroovyFile = { imports: {}, classes: [] };
     let currentClass: SpockTestClass | null = null;
     let inClass = false;
     let classBraceBalance = 0;
@@ -19,8 +39,17 @@ export class TestDiscoveryService {
       const line = lines[i];
       const trimmedLine = line.trim();
 
+      // Look for package and import declarations
+      if (!inClass && this.PACKAGE_REGEX.test(trimmedLine)) {
+        parsedFile.packageName = trimmedLine.match(this.PACKAGE_REGEX)![1];
+      }
+      else if (!inClass && this.IMPORT_REGEX.test(trimmedLine)) {
+        const match = trimmedLine.match(this.IMPORT_REGEX)!;
+        const qualifiedName = match[1];
+        parsedFile.imports[match[2] || qualifiedName.split('.').pop()!] = qualifiedName;
+      }
       // Look for class definition
-      if (this.CLASS_REGEX.test(trimmedLine)) {
+      else if (this.isClassDeclaration(line, trimmedLine)) {
         const match = trimmedLine.match(this.CLASS_REGEX);
         const className = match?.[1];
         const isAbstract = trimmedLine.startsWith('abstract');
@@ -30,9 +59,11 @@ export class TestDiscoveryService {
             line: i,
             range: new vscode.Range(i, 0, i, line.length),
             methods: [],
-            isAbstract: isAbstract
+            isAbstract: isAbstract,
+            superClass: match?.[2],
+            hasSpockBlocks: false
           };
-          testClasses.push(currentClass);
+          parsedFile.classes.push(currentClass);
           inClass = true;
           const delta = this.countBraceDelta(line);
           if (delta > 0) {
@@ -49,7 +80,8 @@ export class TestDiscoveryService {
 
         if (rawName && !this.LIFECYCLE_METHODS.has(rawName)) {
           const isQuoted = !!match?.[2];
-          const shouldAccept = isQuoted || this.lineHasSpockBlockLabelNearby(lines, i);
+          const hasBlockLabel = this.lineHasSpockBlockLabelNearby(lines, i);
+          const shouldAccept = isQuoted || hasBlockLabel;
           const braceOk = hasBraceSameLine || this.hasOpeningBraceOnOrNextLine(lines, i);
 
           if (shouldAccept && braceOk) {
@@ -63,6 +95,7 @@ export class TestDiscoveryService {
               isDataDriven: isDataDriven
             };
             currentClass.methods.push(testMethod);
+            currentClass.hasSpockBlocks = currentClass.hasSpockBlocks || hasBlockLabel;
           }
         }
       }
@@ -83,7 +116,18 @@ export class TestDiscoveryService {
       }
     }
 
-    return testClasses;
+    return parsedFile;
+  }
+
+  private static isClassDeclaration(line: string, trimmedLine: string): boolean {
+    const match = trimmedLine.match(this.CLASS_REGEX);
+    if (!match) {
+      return false;
+    }
+    // Classes extending anything other than Specification are only picked up when declared at the
+    // top level (not indented), so that helper classes nested inside a specification do not take
+    // over its remaining feature methods
+    return SpecClassIndex.isSpecification(match[2]) || !/^\s/.test(line);
   }
 
   private static hasOpeningBraceOnOrNextLine(lines: string[], startIndex: number): boolean {
