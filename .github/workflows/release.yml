@@ -1,0 +1,172 @@
+# Release workflow - does every step of "Release Instructions" in README.md.
+#
+# Run it manually: Actions -> Release -> Run workflow, branch master, pick the bump.
+#   1. bumps the version in package.json / package-lock.json and the README
+#      "Version" line, and adds a CHANGELOG.md section listing the pull requests
+#      merged since the last release (scripts/prepare-release.mjs)
+#   2. lints and packages the VSIX
+#   3. commits "Release vX.Y.Z" to master and pushes it together with the tag vX.Y.Z
+#   4. creates a GitHub Release with the VSIX and the new CHANGELOG section
+#   5. publishes to the VS Code Marketplace and Open VSX
+#
+# Bump "none" builds and publishes the current version again from its tag, e.g.
+# after a publish step failed. Versions already on a registry are skipped.
+#
+# Only the repository owner can run it. Setup (secrets, master protection,
+# Marketplace sign-in) is described under "Release Instructions" in README.md.
+
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: Version bump (none = publish the current version again)
+        type: choice
+        options: [patch, minor, major, none]
+        default: patch
+      version:
+        description: Exact version instead of the bump, e.g. 1.0.0 (optional)
+        type: string
+        required: false
+
+permissions:
+  contents: write
+  pull-requests: read  # list the pull requests merged since the last release
+  id-token: write  # OIDC sign-in: Open VSX trusted publishing, Microsoft Entra ID for the Marketplace
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/master' && github.triggering_actor == github.repository_owner
+    environment: release
+    env:
+      GH_TOKEN: ${{ github.token }}
+      AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+      AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+      VSCE_PAT: ${{ secrets.VSCE_PAT }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          # A deploy key that may bypass master's protection; without it the
+          # push uses GITHUB_TOKEN, which works only if master allows it
+          ssh-key: ${{ secrets.RELEASE_DEPLOY_KEY }}
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Prepare version and changelog
+        id: version
+        env:
+          BUMP: ${{ inputs.version || inputs.bump }}
+        run: |
+          if [ "$BUMP" = "none" ]; then
+            version=$(node -p "require('./package.json').version")
+            if ! git rev-parse -q --verify "refs/tags/v$version" >/dev/null; then
+              echo "::error::Tag v$version does not exist, so there is nothing to publish again. Pick a bump instead."
+              exit 1
+            fi
+            git checkout -q "v$version"
+            echo "Publishing v$version again"
+          else
+            last_tag=$(git describe --tags --abbrev=0 --match 'v[0-9]*' 2>/dev/null || true)
+            search="base:master"
+            if [ -n "$last_tag" ]; then
+              since=$(date -u -d "$(git log -1 --format=%cI "$last_tag")" +%Y-%m-%dT%H:%M:%SZ)
+              search="$search merged:>$since"
+              echo "Changes since $last_tag ($since)"
+            fi
+            gh pr list --state merged --search "$search" --limit 500 \
+              --json number,title,url,author,labels > prs.json
+
+            version=$(node scripts/prepare-release.mjs "$BUMP" prs.json release-notes.md)
+            if git rev-parse -q --verify "refs/tags/v$version" >/dev/null; then
+              echo "::error::Tag v$version already exists. Pick another bump or version."
+              exit 1
+            fi
+            npm version "$version" --no-git-tag-version --allow-same-version
+            rm prs.json
+            echo "Releasing v$version"
+            cat release-notes.md
+          fi
+
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "tag=v$version" >> "$GITHUB_OUTPUT"
+          echo "vsix=spock-test-runner-vscode-$version.vsix" >> "$GITHUB_OUTPUT"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Build VSIX
+        run: npm run package
+
+      - name: Commit and tag
+        if: inputs.bump != 'none' || inputs.version != ''
+        env:
+          TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package.json package-lock.json README.md CHANGELOG.md
+          git commit -m "Release $TAG"
+          git tag "$TAG"
+          if ! git push --atomic origin HEAD:refs/heads/master "refs/tags/$TAG"; then
+            echo "::error::Pushing the release commit and $TAG to master failed, so nothing was released. If master moved during the run, run the workflow again. If master's protection rejected the push, set up the RELEASE_DEPLOY_KEY secret and allow deploy keys to bypass the rules (README, Release Instructions)."
+            exit 1
+          fi
+
+      - name: Create GitHub Release
+        env:
+          TAG: ${{ steps.version.outputs.tag }}
+          VERSION: ${{ steps.version.outputs.version }}
+          VSIX: ${{ steps.version.outputs.vsix }}
+        run: |
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" "$VSIX" --clobber
+          else
+            if [ ! -f release-notes.md ]; then
+              awk -v header="## [$VERSION]" '
+                index($0, header) == 1 { found = 1; next }
+                found && /^## \[/ { exit }
+                found { print }
+              ' CHANGELOG.md > release-notes.md
+            fi
+            gh release create "$TAG" "$VSIX" --verify-tag --title "$TAG" --notes-file release-notes.md
+          fi
+
+      - name: Sign in to Microsoft Entra ID
+        if: env.AZURE_CLIENT_ID != ''
+        uses: azure/login@v3
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          allow-no-subscriptions: true
+
+      - name: Publish to VS Code Marketplace
+        env:
+          VSIX: ${{ steps.version.outputs.vsix }}
+        run: |
+          if [ -n "$AZURE_CLIENT_ID" ]; then
+            npx vsce publish --packagePath "$VSIX" --skip-duplicate --azure-credential
+          elif [ -n "$VSCE_PAT" ]; then
+            npx vsce publish --packagePath "$VSIX" --skip-duplicate
+          else
+            echo "::warning::Neither AZURE_CLIENT_ID nor VSCE_PAT is set, skipping the VS Code Marketplace"
+          fi
+
+      - name: Publish to Open VSX
+        # Trusted publishing: ovsx exchanges the workflow's OIDC token for a short-lived
+        # Open VSX token, so no secret is stored (README, Release Instructions)
+        env:
+          VSIX: ${{ steps.version.outputs.vsix }}
+        run: npx --yes ovsx@^1.2.0 publish "$VSIX" --trusted-publishing --skip-duplicate

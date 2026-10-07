@@ -12,6 +12,7 @@ This file provides guidance to agents when working with code in this repository.
 - `npm run test:e2e` - Run E2E tests with 60s timeout
 - `npm run test:all` - Run all test suites sequentially
 - `npm run package` - Package extension with vsce
+- Releases: manual `Release` workflow ([`.github/workflows/release.yml`](.github/workflows/release.yml)), see "Release Instructions" in README. It owns `version` in `package.json`, the README **Version** line and `CHANGELOG.md` sections - never edit those by hand
 - `./run-vscode.sh [gradle|maven]` - Build, package, and launch VSCode with extension
 
 ## Project-Specific Patterns

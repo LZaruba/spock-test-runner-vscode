@@ -1,3 +1,5 @@
+.github/**
+scripts/**
 .vscode/**
 .vscode-test/**
 src/**
