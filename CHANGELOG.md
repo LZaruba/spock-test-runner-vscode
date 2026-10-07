@@ -4,6 +4,24 @@ All notable changes to the "spock-test-runner-vscode" extension will be document
 
 **Author**: Lukas Zaruba
 
+## [0.0.9] - 2026-10-07
+
+### Added
+- Add manual Release workflow that bumps, changelogs, tags and publishes ([#29](https://github.com/LZaruba/spock-test-runner-vscode/pull/29))
+
+### Changed
+- Bump flatted from 3.3.3 to 3.4.2 ([#22](https://github.com/LZaruba/spock-test-runner-vscode/pull/22))
+- Bump handlebars from 4.7.8 to 4.7.9 ([#24](https://github.com/LZaruba/spock-test-runner-vscode/pull/24))
+- Issue 27 indirect specification inheritance ([#28](https://github.com/LZaruba/spock-test-runner-vscode/pull/28))
+- Bump browserslist from 4.28.1 to 4.29.3 ([#30](https://github.com/LZaruba/spock-test-runner-vscode/pull/30))
+- Bump picomatch to 2.3.2 and 4.0.7 ([#31](https://github.com/LZaruba/spock-test-runner-vscode/pull/31))
+- Bump @humanfs/node from 0.16.7 to 0.16.8 ([#32](https://github.com/LZaruba/spock-test-runner-vscode/pull/32))
+- Bump brace-expansion from 1.1.12 to 1.1.21 ([#33](https://github.com/LZaruba/spock-test-runner-vscode/pull/33))
+- Bump js-yaml from 3.14.2 to 3.15.2 ([#34](https://github.com/LZaruba/spock-test-runner-vscode/pull/34))
+- Bump @babel/core from 7.29.0 to 7.29.7 ([#36](https://github.com/LZaruba/spock-test-runner-vscode/pull/36))
+
+Thanks to **Adam Tychoniewicz** ([@adam-tychoniewicz](https://github.com/adam-tychoniewicz)) for their contributions.
+
 ## [0.0.8] - 2026-03-18
 
 ### Added
