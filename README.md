@@ -168,29 +168,42 @@ npm test
    - Update the **Version** line in this README
    - Add a new `## [x.y.z] - YYYY-MM-DD` section in `CHANGELOG.md` with release notes (Added / Changed / Fixed). Credit contributors if applicable.
 
-2. **Commit and tag**  
-   `master` is a protected branch. Do the version bump on a release branch (e.g. `release-v0.0.7`), push it, open a PR into `master`, and merge. After the merge, create and push the tag from `master`:
+2. **Commit**  
+   `master` is a protected branch. Do the version bump on a release branch (e.g. `release-v0.0.7`), push it, open a PR into `master`, and merge:
    ```bash
-   # On your release branch (before PR):
    git checkout -b release-vX.Y.Z
    git add package.json README.md CHANGELOG.md
    git commit -m "Bump to vX.Y.Z"
    git push origin release-vX.Y.Z
-   # Open PR, merge to master, then:
+   ```
+
+3. **Run the Release workflow**  
+   After the merge, go to **Actions → Release → Run workflow** and run it on `master`. The [workflow](.github/workflows/release.yml) does the rest of these instructions for the version in `package.json`:
+   - checks that `package.json`, the **Version** line in this README and `CHANGELOG.md` agree, and that the tag `vX.Y.Z` is not already used by another commit
+   - lints and builds `spock-test-runner-vscode-X.Y.Z.vsix`
+   - creates and pushes the tag `vX.Y.Z` and a GitHub Release with the VSIX attached and the `CHANGELOG.md` section as release notes
+   - publishes the VSIX to the VS Code Marketplace and Open VSX, using the repository secrets `VSCE_PAT` and `OVSX_PAT` (a registry whose secret is not set is skipped with a warning)
+
+   Re-running the workflow for the same version is safe: the existing tag and release are kept, and versions already on a registry are skipped.
+
+   The steps below are what the workflow runs, in case you need to release by hand.
+
+4. **Tag** (manual alternative):
+   ```bash
    git checkout master
    git pull origin master
    git tag vX.Y.Z
    git push origin vX.Y.Z
    ```
 
-3. **Build the VSIX** (installable package):
+5. **Build the VSIX** (installable package):
    ```bash
    npm run compile
    npm run package
    ```
    This produces `spock-test-runner-vscode-X.Y.Z.vsix` in the project root.
 
-4. **Publish** (optional). You can publish manually to both registries:
+6. **Publish** (manual alternative). You can publish manually to both registries:
 
    - **VS Code Marketplace**  
      - **CLI**: `npx vsce publish` (requires a [Personal Access Token](https://code.visualstudio.com/api/working-with-extensions/publishing-extension#get-a-personal-access-token) for your publisher).  

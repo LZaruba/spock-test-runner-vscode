@@ -1,0 +1,130 @@
+# Release workflow - steps 2-4 of "Release Instructions" in README.md.
+#
+# Run it manually (Actions -> Release -> Run workflow, branch: master) after the
+# version bump PR (step 1) has been merged into master. It releases the version
+# found in package.json:
+#   1. checks that package.json, the README "Version" line and CHANGELOG.md agree
+#   2. compiles, lints and packages the VSIX
+#   3. tags the commit as vX.Y.Z and creates a GitHub Release with the VSIX and
+#      the CHANGELOG section as release notes
+#   4. publishes to the VS Code Marketplace (secret VSCE_PAT) and Open VSX
+#      (secret OVSX_PAT); a registry without its secret is skipped
+#
+# Re-running it for the same version is safe: an existing tag on the same commit
+# and an existing release are kept, and versions already on a registry are skipped.
+
+name: Release
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/master'
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Read and check version
+        id: version
+        run: |
+          version=$(node -p "require('./package.json').version")
+          tag="v$version"
+          echo "Releasing $tag"
+
+          if ! grep -qE "^\*\*Version\*\*: ${version//./\\.}\s*$" README.md; then
+            echo "::error file=README.md::The **Version** line in README.md does not match package.json ($version)"
+            exit 1
+          fi
+          if ! grep -qE "^## \[${version//./\\.}\]" CHANGELOG.md; then
+            echo "::error file=CHANGELOG.md::CHANGELOG.md has no '## [$version] - YYYY-MM-DD' section"
+            exit 1
+          fi
+
+          if git rev-parse -q --verify "refs/tags/$tag" >/dev/null; then
+            tagged=$(git rev-list -n 1 "$tag")
+            if [ "$tagged" != "$GITHUB_SHA" ]; then
+              echo "::error::$tag already exists on $tagged, not on $GITHUB_SHA. Bump the version (step 1) first."
+              exit 1
+            fi
+            echo "$tag already points to this commit, re-running the release"
+          fi
+
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "vsix=spock-test-runner-vscode-$version.vsix" >> "$GITHUB_OUTPUT"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Build VSIX
+        run: |
+          npm run compile
+          npm run package
+
+      - name: Extract release notes
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          awk -v header="## [$VERSION]" '
+            index($0, header) == 1 { found = 1; next }
+            found && /^## \[/ { exit }
+            found { print }
+          ' CHANGELOG.md > release-notes.md
+          cat release-notes.md
+
+      - name: Create tag and GitHub Release
+        env:
+          TAG: ${{ steps.version.outputs.tag }}
+          VSIX: ${{ steps.version.outputs.vsix }}
+        run: |
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "Release $TAG already exists, uploading the VSIX again"
+            gh release upload "$TAG" "$VSIX" --clobber
+          else
+            gh release create "$TAG" "$VSIX" \
+              --target "$GITHUB_SHA" \
+              --title "$TAG" \
+              --notes-file release-notes.md
+          fi
+
+      - name: Publish to VS Code Marketplace
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+          VSIX: ${{ steps.version.outputs.vsix }}
+        run: |
+          if [ -z "$VSCE_PAT" ]; then
+            echo "::warning::VSCE_PAT secret is not set, skipping the VS Code Marketplace"
+            exit 0
+          fi
+          npx vsce publish --packagePath "$VSIX" --skip-duplicate
+
+      - name: Publish to Open VSX
+        env:
+          OVSX_PAT: ${{ secrets.OVSX_PAT }}
+          VSIX: ${{ steps.version.outputs.vsix }}
+        run: |
+          if [ -z "$OVSX_PAT" ]; then
+            echo "::warning::OVSX_PAT secret is not set, skipping Open VSX"
+            exit 0
+          fi
+          npx --yes ovsx@1 publish "$VSIX" --skip-duplicate
