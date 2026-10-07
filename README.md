@@ -163,55 +163,41 @@ npm test
 
 ### Release Instructions
 
-1. **Bump version** (e.g. to `0.0.7`):
-   - Update `version` in `package.json`
-   - Update the **Version** line in this README
-   - Add a new `## [x.y.z] - YYYY-MM-DD` section in `CHANGELOG.md` with release notes (Added / Changed / Fixed). Credit contributors if applicable.
+Releases are made by the manual [Release workflow](.github/workflows/release.yml). Only the repository owner can run it.
 
-2. **Commit**  
-   `master` is a protected branch. Do the version bump on a release branch (e.g. `release-v0.0.7`), push it, open a PR into `master`, and merge:
-   ```bash
-   git checkout -b release-vX.Y.Z
-   git add package.json README.md CHANGELOG.md
-   git commit -m "Bump to vX.Y.Z"
-   git push origin release-vX.Y.Z
-   ```
+1. Go to **Actions → Release → Run workflow**, keep the branch on `master` and pick the bump (`patch`, `minor`, `major`), or type an exact version.
+2. The workflow:
+   - bumps `version` in `package.json` and `package-lock.json` and the **Version** line in this README
+   - adds a `## [x.y.z] - YYYY-MM-DD` section to `CHANGELOG.md` listing the pull requests merged since the last release, sorted into Added / Changed / Fixed by their titles (`feat…`/`add…` → Added, `fix…` → Fixed, everything else → Changed) or labels (`enhancement`, `bug`), and thanking outside contributors
+   - lints and builds `spock-test-runner-vscode-x.y.z.vsix`
+   - commits `Release vx.y.z` to `master` and pushes it with the tag `vx.y.z`
+   - creates a GitHub Release with the VSIX attached and the new changelog section as notes
+   - publishes the VSIX to the VS Code Marketplace and Open VSX
 
-3. **Run the Release workflow**  
-   After the merge, go to **Actions → Release → Run workflow** and run it on `master`. The [workflow](.github/workflows/release.yml) does the rest of these instructions for the version in `package.json`:
-   - checks that `package.json`, the **Version** line in this README and `CHANGELOG.md` agree, and that the tag `vX.Y.Z` is not already used by another commit
-   - lints and builds `spock-test-runner-vscode-X.Y.Z.vsix`
-   - creates and pushes the tag `vX.Y.Z` and a GitHub Release with the VSIX attached and the `CHANGELOG.md` section as release notes
-   - publishes the VSIX to the VS Code Marketplace and Open VSX, using the repository secrets `VSCE_PAT` and `OVSX_PAT` (a registry whose secret is not set is skipped with a warning)
+If a publish step fails after the release commit was pushed, run the workflow again with the bump `none`: it rebuilds the current version from its tag and publishes it again, skipping a registry that already has it.
 
-   Re-running the workflow for the same version is safe: the existing tag and release are kept, and versions already on a registry are skipped.
+#### One-time setup
 
-   The steps below are what the workflow runs, in case you need to release by hand.
+- **`master` protection.** The workflow pushes its release commit straight to `master`. Create an SSH key pair (`ssh-keygen -t ed25519 -f release-key -N ""`), add `release-key.pub` under **Settings → Deploy keys** with **Allow write access**, and store `release-key` as the repository secret `RELEASE_DEPLOY_KEY`. In the ruleset protecting `master` (**Settings → Rules → Rulesets**), add **Deploy keys** to the bypass list.
+- **Open VSX** uses [trusted publishing](https://github.com/eclipse-openvsx/openvsx/wiki/Trusted-Publishing), so no token is stored. On [open-vsx.org](https://open-vsx.org) go to **Settings → Trusted Publishers**, select the `LZaruba` namespace, choose **GitHub Actions** and enter owner `LZaruba`, repository `spock-test-runner-vscode`, workflow `release.yml`, environment `release`.
+- **VS Code Marketplace** signs in with Microsoft Entra ID (personal access tokens for the Marketplace stop working on 2026-12-01):
+  1. In the [Azure portal](https://portal.azure.com) create a **user-assigned managed identity** (an App Registration does not work for publishing).
+  2. In the identity's **Federated credentials**, add a credential for **GitHub Actions deploying Azure resources**: organization `LZaruba`, repository `spock-test-runner-vscode`, entity type **Environment**, environment `release`.
+  3. Store the identity's **Client ID** and **Tenant ID** as the repository secrets `AZURE_CLIENT_ID` and `AZURE_TENANT_ID`.
+  4. Find the identity's Marketplace ID: signed in as the identity (e.g. a one-off workflow step after `azure/login`), run `az rest -u https://app.vssps.visualstudio.com/_apis/profile/profiles/me --resource 499b84ac-1321-427f-aa17-267ca6975798` and copy the `id` from the response.
+  5. On the [Marketplace publisher page](https://marketplace.visualstudio.com/manage/publishers/LZaruba) open **Members**, add that `id` and give it the **Contributor** role.
 
-4. **Tag** (manual alternative):
-   ```bash
-   git checkout master
-   git pull origin master
-   git tag vX.Y.Z
-   git push origin vX.Y.Z
-   ```
+  Until then, a [personal access token](https://code.visualstudio.com/api/working-with-extensions/publishing-extension#get-a-personal-access-token) (organization **All accessible organizations**, scope **Marketplace → Manage**) stored as the secret `VSCE_PAT` works as well. The Marketplace step is skipped with a warning when neither `AZURE_CLIENT_ID` nor `VSCE_PAT` is set. The Open VSX step fails until the trusted publisher is registered.
 
-5. **Build the VSIX** (installable package):
-   ```bash
-   npm run compile
-   npm run package
-   ```
-   This produces `spock-test-runner-vscode-X.Y.Z.vsix` in the project root.
+#### Releasing by hand
 
-6. **Publish** (manual alternative). You can publish manually to both registries:
-
-   - **VS Code Marketplace**  
-     - **CLI**: `npx vsce publish` (requires a [Personal Access Token](https://code.visualstudio.com/api/working-with-extensions/publishing-extension#get-a-personal-access-token) for your publisher).  
-     - **Manual**: [Publish to VS Code Marketplace](https://marketplace.visualstudio.com/manage) → select your publisher → “Add new extension” → upload the `.vsix` file.
-
-   - **Open VSX** (e.g. VSCodium, Eclipse Theia)  
-     - **CLI**: `npx ovsx publish spock-test-runner-vscode-X.Y.Z.vsix -p <open-vsx-token>` ([create token](https://open-vsx.org/user-settings/tokens)).  
-     - **Manual**: [Open VSX publish](https://open-vsx.org/namespace-settings) → select your namespace → “Publish Extension” → upload the `.vsix` file.
+The workflow runs the same commands you would run locally:
+```bash
+npm run package                       # builds spock-test-runner-vscode-x.y.z.vsix
+git tag vx.y.z && git push origin vx.y.z
+npx vsce publish --packagePath spock-test-runner-vscode-x.y.z.vsix -p <marketplace-token>
+npx ovsx publish spock-test-runner-vscode-x.y.z.vsix -p <open-vsx-token>
+```
 
 ### Project Structure
 ```
