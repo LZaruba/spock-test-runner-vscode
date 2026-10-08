@@ -2,13 +2,23 @@ import * as vscode from 'vscode';
 import { ParsedGroovyFile, SpockTestClass, SpockTestMethod } from '../types';
 import { SpecClassIndex } from './SpecClassIndex';
 
+interface ClassDeclaration {
+  name: string;
+  superClass: string;
+  isAbstract: boolean;
+}
+
 export class TestDiscoveryService {
   private static readonly LIFECYCLE_METHODS = new Set(['setup', 'setupSpec', 'cleanup', 'cleanupSpec']);
-  private static readonly CLASS_REGEX = /^(?:abstract\s+)?class\s+(\w+)(?:\s*<[^>]*>)?\s+extends\s+([\w.]+)/;
+  // Annotations and modifiers may precede the class keyword, e.g. "@Stepwise abstract class" or "public class"
+  private static readonly CLASS_HEADER_REGEX = /^(?:@[\w.]+(?:\([^()]*\))?\s+)*((?:(?:public|protected|private|abstract|final|static|strictfp)\s+)*)class\s+(\w+)(.*)$/;
+  private static readonly EXTENDS_REGEX = /^extends\s+([\w.]+)/;
+  private static readonly MAX_CLASS_DECLARATION_LINES = 5;
   private static readonly PACKAGE_REGEX = /^package\s+([\w.]+)/;
   private static readonly IMPORT_REGEX = /^import\s+(?!static\b)([\w.]+)(?:\s+as\s+(\w+))?\s*;?\s*$/;
   private static readonly METHOD_HEADER_REGEX = /^(?:def|void)\s+(['"]([^'"]+)['"]|([a-zA-Z_][a-zA-Z0-9_]*))\s*(?:\([^)]*\))?\s*(\{)?\s*$/;
-  private static readonly BLOCK_LABEL_REGEX = /^(given|when|then|expect|where)\s*:\s*$/;
+  // Spock block label, optionally followed by a description or a comment, e.g. `given: "a user"`
+  private static readonly BLOCK_LABEL_REGEX = /^(setup|given|when|then|expect|cleanup|where|and)\s*:\s*(?:["'].*|\/\/.*)?$/;
 
   /**
    * Parses the Spock specifications declared in a single file. Specifications extending a base class
@@ -38,6 +48,7 @@ export class TestDiscoveryService {
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
       const trimmedLine = line.trim();
+      const classDeclaration = this.parseClassDeclaration(lines, i);
 
       // Look for package and import declarations
       if (!inClass && this.PACKAGE_REGEX.test(trimmedLine)) {
@@ -49,28 +60,23 @@ export class TestDiscoveryService {
         parsedFile.imports[match[2] || qualifiedName.split('.').pop()!] = qualifiedName;
       }
       // Look for class definition
-      else if (this.isClassDeclaration(line, trimmedLine)) {
-        const match = trimmedLine.match(this.CLASS_REGEX);
-        const className = match?.[1];
-        const isAbstract = trimmedLine.startsWith('abstract');
-        if (className) {
-          currentClass = {
-            name: className,
-            line: i,
-            range: new vscode.Range(i, 0, i, line.length),
-            methods: [],
-            isAbstract: isAbstract,
-            superClass: match?.[2],
-            hasSpockBlocks: false
-          };
-          parsedFile.classes.push(currentClass);
-          inClass = true;
-          const delta = this.countBraceDelta(line);
-          if (delta > 0) {
-            seenClassOpeningBrace = true;
-          }
-          classBraceBalance += delta;
+      else if (classDeclaration && this.isClassDeclaration(line, classDeclaration)) {
+        currentClass = {
+          name: classDeclaration.name,
+          line: i,
+          range: new vscode.Range(i, 0, i, line.length),
+          methods: [],
+          isAbstract: classDeclaration.isAbstract,
+          superClass: classDeclaration.superClass,
+          hasSpockBlocks: false
+        };
+        parsedFile.classes.push(currentClass);
+        inClass = true;
+        const delta = this.countBraceDelta(line);
+        if (delta > 0) {
+          seenClassOpeningBrace = true;
         }
+        classBraceBalance += delta;
       }
       // Look for test methods
       else if (inClass && currentClass && this.METHOD_HEADER_REGEX.test(trimmedLine)) {
@@ -119,15 +125,51 @@ export class TestDiscoveryService {
     return parsedFile;
   }
 
-  private static isClassDeclaration(line: string, trimmedLine: string): boolean {
-    const match = trimmedLine.match(this.CLASS_REGEX);
-    if (!match) {
-      return false;
-    }
+  private static isClassDeclaration(line: string, classDeclaration: ClassDeclaration): boolean {
     // Classes extending anything other than Specification are only picked up when declared at the
     // top level (not indented), so that helper classes nested inside a specification do not take
     // over its remaining feature methods
-    return SpecClassIndex.isSpecification(match[2]) || !/^\s/.test(line);
+    return SpecClassIndex.isSpecification(classDeclaration.superClass) || !/^\s/.test(line);
+  }
+
+  /**
+   * Parses the declaration of a class extending another class starting at the given line. The superclass
+   * may follow on one of the next lines, e.g. when a long class name is followed by a line break.
+   */
+  private static parseClassDeclaration(lines: string[], startIndex: number): ClassDeclaration | undefined {
+    const match = lines[startIndex].trim().match(this.CLASS_HEADER_REGEX);
+    if (!match) {
+      return undefined;
+    }
+
+    let declaration = match[3].trim();
+    for (let j = startIndex + 1; !declaration.includes('{') && j < Math.min(lines.length, startIndex + this.MAX_CLASS_DECLARATION_LINES); j++) {
+      declaration = `${declaration} ${lines[j].trim()}`.trim();
+    }
+
+    const extendsMatch = this.skipTypeParameters(declaration).match(this.EXTENDS_REGEX);
+    if (!extendsMatch) {
+      return undefined;
+    }
+    return { name: match[2], superClass: extendsMatch[1], isAbstract: /\babstract\b/.test(match[1]) };
+  }
+
+  /**
+   * Strips the type parameters, which may be nested (e.g. <T extends Comparable<T>>), from the start of the text.
+   */
+  private static skipTypeParameters(text: string): string {
+    if (!text.startsWith('<')) {
+      return text;
+    }
+    let depth = 0;
+    for (let i = 0; i < text.length; i++) {
+      if (text[i] === '<') {
+        depth++;
+      } else if (text[i] === '>' && --depth === 0) {
+        return text.substring(i + 1).trim();
+      }
+    }
+    return text;
   }
 
   private static hasOpeningBraceOnOrNextLine(lines: string[], startIndex: number): boolean {
@@ -188,7 +230,7 @@ export class TestDiscoveryService {
       }
       
       // Look for 'where:' block
-      if (this.BLOCK_LABEL_REGEX.test(trimmedLine) && trimmedLine.includes('where')) {
+      if (trimmedLine.match(this.BLOCK_LABEL_REGEX)?.[1] === 'where') {
         return true;
       }
     }

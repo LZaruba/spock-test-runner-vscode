@@ -104,7 +104,7 @@ class MySpec extends BaseSpec {
 }
 ```
 
-Base classes are resolved across all `.groovy` files of the workspace. When a base class is not part of the workspace (e.g. `GebSpec` coming from a library), the class is recognized by its feature methods using Spock blocks (`given:`, `when:`, `then:`, `expect:`, `where:`).
+Base classes are resolved across all `.groovy` files of the workspace. When a base class is not part of the workspace (e.g. `GebSpec` coming from a library), the class is recognized by its feature methods using Spock blocks (`given:`, `when:`, `then:`, `expect:`, `where:`, ...), with or without descriptions (e.g. `given: "a logged in user"`).
 
 ## Configuration
 

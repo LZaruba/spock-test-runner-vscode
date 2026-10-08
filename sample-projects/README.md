@@ -19,6 +19,8 @@ sample-project/
 │   ├── AbstractSpec.groovy       # Abstract test class (edge case)
 │   ├── ChildSpec.groovy          # Extends AbstractSpec (indirect Specification subclass)
 │   ├── GrandChildSpec.groovy     # Extends ChildSpec (two levels of inheritance)
+│   ├── AnnotatedBaseSpec.groovy  # Generic base spec declared with an annotation and modifiers
+│   ├── DescribedChildSpec.groovy # Extends AnnotatedBaseSpec (multi-line declaration, described blocks)
 │   ├── MalformedSpec.groovy      # Malformed syntax (edge case)
 │   ├── CalculatorSpec.groovy     # Original calculator tests
 │   ├── UserServiceSpec.groovy    # Original user service tests
