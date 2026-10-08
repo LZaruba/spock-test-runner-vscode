@@ -131,6 +131,99 @@ class OuterSpec extends BaseSpec {
       expect(parsed.classes).toHaveLength(1);
       expect(parsed.classes[0].methods.map(m => m.name)).toEqual(['first feature', 'second feature']);
     });
+
+    it('should capture classes declared with annotations and modifiers', () => {
+      const parsed = TestDiscoveryService.parseFile(`
+@Stepwise abstract class AnnotatedBaseSpec extends Specification {
+}
+
+public abstract class PublicBaseSpec extends Specification {
+}
+
+@SpringBootTest(classes = Application) public class PublicSpec extends PublicBaseSpec {
+}
+
+final class FinalSpec extends AnnotatedBaseSpec {
+}`);
+
+      expect(parsed.classes.map(c => [c.name, c.superClass, c.isAbstract])).toEqual([
+        ['AnnotatedBaseSpec', 'Specification', true],
+        ['PublicBaseSpec', 'Specification', true],
+        ['PublicSpec', 'PublicBaseSpec', false],
+        ['FinalSpec', 'AnnotatedBaseSpec', false]
+      ]);
+    });
+
+    it('should capture nested type parameters and superclasses declared on the next line', () => {
+      const parsed = TestDiscoveryService.parseFile(`
+abstract class RepositorySpec<T extends Comparable<T>> extends Specification {
+}
+
+class VeryLongNameRepositorySpec
+        extends RepositorySpec<String> {
+}
+
+class AnotherRepositorySpec
+{
+}`);
+
+      expect(parsed.classes.map(c => [c.name, c.superClass])).toEqual([
+        ['RepositorySpec', 'Specification'],
+        ['VeryLongNameRepositorySpec', 'RepositorySpec']
+      ]);
+      expect(parsed.classes[1].line).toBe(4);
+    });
+
+    it('should recognize Spock blocks with descriptions', () => {
+      const parsed = TestDiscoveryService.parseFile(`
+class DescribedSpec extends IntegrationSpec {
+    def "described feature"() {
+        given: "a value from somewhere"
+        def value = 1
+
+        when: 'the value is incremented'
+        value++
+
+        then: "it is incremented" // with a comment
+        value == 2
+
+        and:
+        value > 0
+    }
+
+    def unquotedFeature() {
+        setup: "a value"
+        def value = 1
+
+        expect: "it is positive"
+        value > 0
+
+        cleanup: "nothing to do"
+    }
+}`);
+
+      const [describedSpec] = parsed.classes;
+      expect(describedSpec.hasSpockBlocks).toBe(true);
+      expect(describedSpec.methods.map(m => [m.name, m.isDataDriven])).toEqual([
+        ['described feature', false],
+        ['unquotedFeature', false]
+      ]);
+    });
+
+    it('should recognize where blocks with descriptions as data-driven', () => {
+      const parsed = TestDiscoveryService.parseFile(`
+class DataSpec extends Specification {
+    def "data feature"() {
+        expect:
+        value > 0
+
+        where: "the values are positive"
+        value << [1, 2]
+    }
+}`);
+
+      expect(parsed.classes[0].methods[0].isDataDriven).toBe(true);
+    });
   });
 
   describe('TestDiscoveryService.parseTestsInFile', () => {
@@ -190,6 +283,24 @@ class LoginSpec extends GebSpec {
       expect(result[0].methods.map(m => m.name)).toEqual(['user can log in']);
     });
 
+    it('should recognize a spec extending a base class that is not in the workspace by its described Spock blocks', () => {
+      const result = TestDiscoveryService.parseTestsInFile(`
+import geb.spock.GebSpec
+
+class LoginSpec extends GebSpec {
+    def "user can log in"() {
+        when: "the user logs in"
+        to LoginPage
+
+        then: "the login page is shown"
+        at LoginPage
+    }
+}`);
+
+      expect(result.map(c => c.name)).toEqual(['LoginSpec']);
+      expect(result[0].methods.map(m => m.name)).toEqual(['user can log in']);
+    });
+
     it('should not recognize classes extending a non-Spock base class', () => {
       const result = TestDiscoveryService.parseTestsInFile(`
 class Dog extends Animal {
@@ -232,6 +343,43 @@ class SomeTest extends GroovyTestCase {
         ['base feature', 'BaseSpec', 'base'],
         ['base data feature', 'BaseSpec', 'base'],
         ['child feature', 'ChildSpec', 'child']
+      ]);
+    });
+
+    it('should resolve base specs declared with annotations, modifiers and nested type parameters', () => {
+      const index = indexOf({
+        'base': `
+package com.example
+
+import spock.lang.Specification
+
+@Stepwise public abstract class RepositorySpec<T extends Comparable<T>> extends Specification {
+    def "base feature"() {
+        expect:
+        true
+    }
+}`,
+        'child': `
+package com.example
+
+class StringRepositorySpec
+        extends RepositorySpec<String> {
+    def "child feature"() {
+        given: "a repository"
+        def repository = []
+
+        expect: "it is empty"
+        repository.isEmpty()
+    }
+}`
+      });
+
+      expect(index.getSpecClasses('base').map(c => [c.name, c.isAbstract])).toEqual([['RepositorySpec', true]]);
+      const [childSpec] = index.getSpecClasses('child');
+      expect(childSpec.name).toBe('StringRepositorySpec');
+      expect(childSpec.methods.map(m => m.name)).toEqual(['child feature']);
+      expect(childSpec.inheritedMethods!.map(m => [m.method.name, m.declaringClass])).toEqual([
+        ['base feature', 'RepositorySpec']
       ]);
     });
 
@@ -382,6 +530,13 @@ class B extends A {
       expect(grandChildSpec.inheritedMethods!.map(m => m.declaringClass)).toEqual(
         ['AbstractSpec', 'AbstractSpec', ...childSpec.methods.map(() => 'ChildSpec')]
       );
+
+      const [describedChildSpec] = index.getSpecClasses('DescribedChildSpec.groovy');
+      expect(describedChildSpec.name).toBe('DescribedChildSpec');
+      expect(describedChildSpec.methods.map(m => m.name)).toEqual(['adds numbers']);
+      expect(describedChildSpec.inheritedMethods!.map(m => [m.method.name, m.fileKey])).toEqual([
+        ['values are ordered', 'AnnotatedBaseSpec.groovy']
+      ]);
     });
   });
 });
