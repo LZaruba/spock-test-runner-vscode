@@ -4,6 +4,13 @@ All notable changes to the "spock-test-runner-vscode" extension will be document
 
 **Author**: Lukas Zaruba
 
+## [0.0.10] - 2026-10-08
+
+### Fixed
+- Recognize more declarations of specs extending Specification indirectly ([#37](https://github.com/LZaruba/spock-test-runner-vscode/pull/37))
+
+Thanks to **Adam Tychoniewicz** ([@adam-tychoniewicz](https://github.com/adam-tychoniewicz)) for their contributions.
+
 ## [0.0.9] - 2026-10-07
 
 ### Added
